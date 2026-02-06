@@ -1,0 +1,31 @@
+/* src/index.css - RESET TOTAL */
+
+:root {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* 1. REGLA DE ORO: El padding no aumenta el ancho */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 2. FORZAR TAMAÑO DE PANTALLA */
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden; /* PROHIBIDO el scroll horizontal */
+  background-color: #f0f2f5;
+}
+
+/* 3. CONTENEDOR REACT A PANTALLA COMPLETA */
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate; /* Evita problemas de superposición */
+}

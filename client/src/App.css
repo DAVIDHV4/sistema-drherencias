@@ -1,0 +1,6 @@
+/* src/App.css - Solo variables globales */
+:root {
+  --primary-navy: #004e8e;
+  --bg-app: #f0f2f5;
+  --text-dark: #333;
+}

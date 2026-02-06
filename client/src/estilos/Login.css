@@ -1,0 +1,117 @@
+/* src/estilos/Login.css */
+
+/* Fondo general limpio */
+.zoom-login-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f5f7f9;
+  padding: 15px; /* Reducido para móviles */
+}
+
+/* Tarjeta Central */
+.zoom-login-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 400px;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  /* Animación suave al cargar */
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Encabezado */
+.zoom-header { margin-bottom: 30px; }
+.zoom-header h1 { margin: 0 0 10px 0; color: #232333; font-size: 28px; font-weight: 700; }
+.zoom-subtitle { margin: 0; color: #747487; font-size: 16px; }
+
+/* Mensaje de Error */
+.zoom-error-banner {
+  background-color: #ffebee;
+  color: #d93025;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  text-align: left;
+  border: 1px solid #ffcdd2;
+}
+
+/* Formulario */
+.zoom-form { text-align: left; }
+.zoom-input-group { margin-bottom: 24px; }
+.zoom-input-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #747487;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.zoom-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px; /* 16px evita que el iPhone haga zoom al escribir */
+  color: #232333;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  height: 48px;
+}
+
+.zoom-input:focus {
+  border-color: #004e8e;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(0, 78, 142, 0.1);
+}
+
+.zoom-forgot-link { text-align: right; margin-top: 8px; }
+.zoom-forgot-link a { color: #004e8e; font-size: 14px; text-decoration: none; font-weight: 500; }
+
+/* Botón */
+.btn-zoom-signin {
+  width: 100%;
+  height: 48px;
+  background-color: #004e8e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  /* Evita el doble tap en móviles */
+  touch-action: manipulation; 
+}
+
+.btn-zoom-signin:hover { background-color: #003d73; }
+.btn-zoom-signin:active { transform: scale(0.98); }
+
+.zoom-footer { margin-top: 30px; font-size: 14px; color: #747487; border-top: 1px solid #eee; padding-top: 20px; }
+
+/* --- VERSIÓN MÓVIL --- */
+@media (max-width: 480px) {
+  .zoom-login-card {
+    padding: 25px 20px; /* Menos relleno en los bordes */
+    box-shadow: none; /* Quitamos sombra para look 'flat' limpio en móvil */
+    background: transparent; /* Se integra con el fondo */
+  }
+  
+  .zoom-login-container {
+    background: #ffffff; /* Fondo blanco total en celular para que parezca app nativa */
+    align-items: flex-start; /* Subimos el contenido un poco */
+    padding-top: 40px;
+  }
+
+  .zoom-header h1 { font-size: 24px; }
+}

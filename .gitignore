@@ -1,0 +1,16 @@
+# Dependencias (Se instalan, no se suben)
+node_modules/
+
+# Archivos de producción
+dist/
+build/
+
+# Variables de entorno (CLAVES SECRETAS - NO SUBIR)
+.env
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Carpetas de archivos subidos (Los PDFs no van al código)
+server/uploads/
