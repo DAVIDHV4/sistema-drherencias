@@ -5,7 +5,7 @@ import { FaTrash, FaFilePdf } from 'react-icons/fa';
 import Swal from 'sweetalert2'; 
 import './estilos/Formulario.css'; 
 
-function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar }) {
+function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, categoriaPreseleccionada }) {
   const { register, handleSubmit, reset, setValue } = useForm();
   
   const [archivoExistente, setArchivoExistente] = useState(null);
@@ -13,20 +13,28 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar }) 
 
   useEffect(() => {
     if (expedienteAEditar) {
-      const formatearFecha = (fecha) => fecha ? new Date(fecha).toISOString().split('T')[0] : '';
-      
       reset({
-        ...expedienteAEditar,
-        fecha_inicio: formatearFecha(expedienteAEditar.fecha_inicio),
-        fecha_finalizacion: formatearFecha(expedienteAEditar.fecha_finalizacion),
+        nro_expediente: expedienteAEditar.nro_expediente,
+        demandante: expedienteAEditar.demandante,
+        dni_demandante: expedienteAEditar.dni_demandante,
+        demandado: expedienteAEditar.demandado,
+        dni_demandado: expedienteAEditar.dni_demandado,
+        juzgado: expedienteAEditar.juzgado,
+        abogado_encargado: expedienteAEditar.abogado_encargado,
+        detalle: expedienteAEditar.detalle,
+        categoria: expedienteAEditar.categoria
       });
 
-      if (expedienteAEditar.archivos) {
-        setArchivoExistente(expedienteAEditar.archivos);
+      if (expedienteAEditar.archivo_url) {
+        setArchivoExistente(expedienteAEditar.archivo_url);
         setEliminarArchivo(false);
       }
+    } else {
+      if (categoriaPreseleccionada) {
+        setValue('categoria', categoriaPreseleccionada);
+      }
     }
-  }, [expedienteAEditar, reset]);
+  }, [expedienteAEditar, reset, categoriaPreseleccionada, setValue]);
 
   const handleBorrarArchivo = () => {
     setEliminarArchivo(true);
@@ -37,67 +45,58 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar }) 
   const onSubmit = async (data) => {
     Swal.fire({
       title: 'Guardando...',
-      text: 'Por favor espere mientras procesamos los datos.',
+      text: 'Validando datos...',
       allowOutsideClick: false,
       didOpen: () => { Swal.showLoading(); }
     });
 
     const formData = new FormData();
-    Object.keys(data).forEach(key => {
-      if (key !== 'archivo' && key !== 'id' && key !== 'creado_en' && key !== 'archivos') {
-        formData.append(key, data[key] || '');
-      }
-    });
+    formData.append('nro_expediente', data.nro_expediente || '');
+    formData.append('cliente', data.demandante || '');
+    formData.append('dni_cliente', data.dni_demandante || '');
+    formData.append('caso', data.demandado || '');
+    formData.append('dni_procurador', data.dni_demandado || '');
+    formData.append('proceso_administrativo', data.juzgado || '');
+    formData.append('procurador', data.abogado_encargado || '');
+    formData.append('categoria', data.categoria || '');
+    formData.append('observaciones', data.detalle || '');
+    formData.append('eliminar_archivo', eliminarArchivo ? 'true' : 'false');
 
     if (data.archivo && data.archivo.length > 0) {
       formData.append('archivo', data.archivo[0]);
-      formData.append('eliminar_archivo', 'false'); 
-    } else if (eliminarArchivo) {
-      formData.append('eliminar_archivo', 'true');
-    } else {
-      formData.append('eliminar_archivo', 'false');
     }
 
     try {
       if (expedienteAEditar) {
-        // CORREGIDO: Ruta relativa
-        await axios.put(`/api/expedientes/${expedienteAEditar.id}`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        
-        await Swal.fire({
-          icon: 'success',
-          title: '¡Actualizado!',
-          text: 'El expediente se ha modificado correctamente.',
-          confirmButtonColor: '#004e8e',
-          confirmButtonText: 'Aceptar'
-        });
-
+        const id = expedienteAEditar.nro_expediente; 
+        await axios.put(`/api/expedientes/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       } else {
-        // CORREGIDO: Ruta relativa
-        await axios.post('/api/expedientes', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-
-        await Swal.fire({
-          icon: 'success',
-          title: '¡Registrado!',
-          text: 'El nuevo expediente se ha creado con éxito.',
-          confirmButtonColor: '#28a745',
-          confirmButtonText: 'Genial'
-        });
+        await axios.post('/api/expedientes', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
       
+      await Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'El expediente se registró correctamente.', confirmButtonColor: '#004e8e' });
       onGuardarExitoso();
       onClose();
 
     } catch (error) {
-      console.error(error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Hubo un problema al guardar los datos.',
-        confirmButtonColor: '#d93025'
+      console.error("Error al guardar:", error);
+
+      let mensajeError = 'Hubo un problema al conectar con el servidor.';
+      let tituloError = 'Error';
+      
+      if (error.response) {
+         // Si es error 500 y estamos creando, asumimos duplicado (Postgres lanza error de llave primaria)
+         if (error.response.status === 500 && !expedienteAEditar) {
+            tituloError = '¡Duplicado!';
+            mensajeError = `El Nro. de Expediente "${data.nro_expediente}" YA EXISTE en el sistema.`;
+         }
+      }
+
+      Swal.fire({ 
+        icon: 'warning',
+        title: tituloError, 
+        text: mensajeError, 
+        confirmButtonColor: '#ffa800' 
       });
     }
   };
@@ -107,167 +106,85 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar }) 
       <div className="modal-card">
         
         <div className="modal-header">
-          <h3>{expedienteAEditar ? `Editar Expediente N° ${expedienteAEditar.id}` : 'Nuevo Expediente / Caso'}</h3>
+          <h3>{expedienteAEditar ? `Editar: ${expedienteAEditar.nro_expediente}` : `Nuevo: ${categoriaPreseleccionada}`}</h3>
           <button className="btn-close-modal" onClick={onClose}>&times;</button>
         </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="modal-body">
           
-          {/* SECCIÓN 1: CLIENTE */}
           <div className="form-section">
-            <h4 className="section-title">1. Datos del Cliente</h4>
+            <h4 className="section-title">1. Información Principal</h4>
             <div className="row-2">
               <div className="form-control">
-                <label>Nombre del Cliente <span className="req">*</span></label>
-                <input {...register("cliente", { required: true })} placeholder="Nombre Completo" />
+                <label>Nro. Expediente <span className="req">*</span></label>
+                <input {...register("nro_expediente", { required: true })} placeholder="Ej: 123-2024-JLA" disabled={!!expedienteAEditar} />
               </div>
+              
               <div className="form-control">
-                <label>DNI / RUC Cliente</label>
-                <input {...register("dni_cliente")} placeholder="Documento" />
+                <label>Categoría (Automática)</label>
+                <input type="text" {...register("categoria")} readOnly style={{backgroundColor: '#e9ecef', color: '#555', cursor: 'not-allowed', fontWeight: 'bold'}} />
               </div>
             </div>
+
+            <div className="row-2">
+               <div className="form-control">
+                <label>Juzgado / Fiscalía</label>
+                <input {...register("juzgado")} />
+              </div>
+               <div className="form-control">
+                <label>Abogado Encargado</label>
+                <input {...register("abogado_encargado")} />
+              </div>
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h4 className="section-title">2. Partes Procesales</h4>
+            <div className="row-2">
+              <div className="form-control">
+                <label>Demandante (Cliente) <span className="req">*</span></label>
+                <input {...register("demandante", { required: true })} />
+              </div>
+              <div className="form-control">
+                <label>DNI Demandante</label>
+                <input {...register("dni_demandante")} />
+              </div>
+            </div>
+            <div className="row-2">
+               <div className="form-control">
+                <label>Demandado / Caso <span className="req">*</span></label>
+                <input {...register("demandado", { required: true })} />
+              </div>
+               <div className="form-control">
+                <label>DNI Demandado</label>
+                <input {...register("dni_demandado")} />
+              </div>
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h4 className="section-title">3. Archivos y Detalles</h4>
             <div className="form-control">
-              <label>Dirección del Cliente</label>
-              <input {...register("direccion_cliente")} />
-            </div>
-          </div>
-
-          {/* SECCIÓN 2: CASO */}
-          <div className="form-section">
-            <h4 className="section-title">2. Información del Caso</h4>
-            <div className="row-2">
-              <div className="form-control">
-                <label>Nombre del Caso <span className="req">*</span></label>
-                <input {...register("caso", { required: true })} />
-              </div>
-              <div className="form-control">
-                <label>Número de Expediente</label>
-                <input {...register("numero_expediente")} />
-              </div>
-            </div>
-            <div className="row-2">
-              <div className="form-control">
-                <label>Categoría</label>
-                <select {...register("categoria")}>
-                  <option value="">Seleccione...</option>
-                  <option value="Civil">Civil</option>
-                  <option value="Penal">Penal</option>
-                  <option value="Laboral">Laboral</option>
-                  <option value="Administrativo">Administrativo</option>
-                  <option value="Familiar">Familiar</option>
-                  <option value="Otro">Otro</option>
-                </select>
-              </div>
-              <div className="form-control">
-                <label>Periodo</label>
-                <input {...register("periodo")} />
-              </div>
-            </div>
-          </div>
-
-          {/* SECCIÓN 3: ESTADO */}
-          <div className="form-section">
-            <h4 className="section-title">3. Estado y Seguimiento</h4>
-            <div className="row-3">
-              <div className="form-control">
-                <label>Estado Actual</label>
-                <select {...register("estado")}>
-                  <option value="Activo">Activo</option>
-                  <option value="En Pausa">En Pausa</option>
-                  <option value="Cerrado">Cerrado</option>
-                  <option value="Archivado">Archivado</option>
-                </select>
-              </div>
-              <div className="form-control">
-                <label>Fecha Inicio</label>
-                <input type="date" {...register("fecha_inicio")} />
-              </div>
-              <div className="form-control">
-                <label>Fecha Finalización</label>
-                <input type="date" {...register("fecha_finalizacion")} />
-              </div>
-            </div>
-            <div className="form-control">
-              <label>Etapa del Proceso</label>
-              <input {...register("etapa_proceso")} />
-            </div>
-          </div>
-
-          {/* SECCIÓN 4: PROCESOS */}
-          <div className="form-section">
-            <h4 className="section-title">4. Detalles Procesales</h4>
-            <div className="row-2">
-              <div className="form-control">
-                <label>Proceso Notarial</label>
-                <textarea className="form-textarea" {...register("proceso_notarial")}></textarea>
-              </div>
-              <div className="form-control">
-                <label>Proceso Administrativo</label>
-                <textarea className="form-textarea" {...register("proceso_administrativo")}></textarea>
-              </div>
-            </div>
-          </div>
-
-          {/* SECCIÓN 5: PROCURADOR */}
-          <div className="form-section">
-            <h4 className="section-title">5. Datos del Procurador</h4>
-            <div className="row-2">
-              <div className="form-control">
-                <label>Nombre Procurador</label>
-                <input {...register("procurador")} />
-              </div>
-              <div className="form-control">
-                <label>DNI Procurador</label>
-                <input {...register("dni_procurador")} />
-              </div>
-            </div>
-            <div className="form-control">
-              <label>Dirección Procurador</label>
-              <input {...register("direccion_procurador")} />
-            </div>
-          </div>
-
-          {/* SECCIÓN 6: ARCHIVOS */}
-          <div className="form-section">
-            <h4 className="section-title">6. Archivos y Observaciones</h4>
-            <div className="form-control">
-              <label>Observaciones Adicionales</label>
-              <textarea className="form-textarea" rows="3" {...register("observaciones")}></textarea>
+              <label>Detalle</label>
+              <textarea className="form-textarea" rows="2" {...register("detalle")}></textarea>
             </div>
             
-            <div className="form-control" style={{background: '#f8f9fa', padding: '15px', borderRadius: '5px', border: '1px solid #eee'}}>
+            <div className="form-control" style={{background: '#f8f9fa', padding: '10px', borderRadius: '5px'}}>
               <label>Expediente Digital</label>
-
               {archivoExistente ? (
-                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', padding: '10px', border: '1px solid #ddd', borderRadius: '4px'}}>
-                   <div style={{display: 'flex', alignItems: 'center', gap: '10px', color: '#004e8e'}}>
-                      <FaFilePdf size={24} color="#d93025"/>
-                      <span style={{fontWeight: '600'}}>Archivo Actual Cargado</span>
-                      {/* CORREGIDO: Enlace relativo */}
-                      <a href={archivoExistente} target="_blank" rel="noopener noreferrer" style={{fontSize: '12px', color: '#666'}}>(Ver)</a>
-                   </div>
-                   <button 
-                      type="button" 
-                      onClick={handleBorrarArchivo}
-                      style={{background: '#ffebee', color: '#d93025', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold'}}
-                   >
-                      <FaTrash /> Eliminar
-                   </button>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                   <a href={archivoExistente} target="_blank" rel="noopener noreferrer" style={{color: '#004e8e', fontWeight: 'bold'}}>Ver Archivo Actual</a>
+                   <button type="button" onClick={handleBorrarArchivo} style={{color: 'red', border: 'none', background: 'none', cursor: 'pointer'}}> <FaTrash/> Borrar</button>
                 </div>
               ) : (
-                <div>
-                   <input type="file" accept="application/pdf" {...register("archivo")} className="input-file"/>
-                   {eliminarArchivo && <small style={{color: '#d93025', display: 'block', marginTop: '5px'}}>* El archivo anterior será eliminado al guardar.</small>}
-                </div>
+                <input type="file" accept="application/pdf" {...register("archivo")} />
               )}
             </div>
           </div>
 
           <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-cancel">Cancelar</button>
-            <button type="submit" className="btn-save">
-                {expedienteAEditar ? 'Actualizar Expediente' : 'Guardar Expediente'}
-            </button>
+            <button type="submit" className="btn-save">Guardar</button>
           </div>
 
         </form>
