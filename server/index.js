@@ -60,7 +60,7 @@ app.get('/api/expedientes', async (req, res) => {
             counter++;
         }
         if (busqueda) {
-            sql += ` AND (demandante ILIKE $${counter} OR nro_expediente ILIKE $${counter} OR demandado ILIKE $${counter} OR dni_demandante ILIKE $${counter} OR CAST(id AS TEXT) ILIKE $${counter})`;
+            sql += ` AND (solicitante ILIKE $${counter} OR nro_expediente ILIKE $${counter} OR dni_solicitante ILIKE $${counter} OR CAST(id AS TEXT) ILIKE $${counter})`;
             values.push(`%${busqueda}%`);
             counter++;
         }
@@ -77,18 +77,17 @@ app.get('/api/expedientes', async (req, res) => {
 app.post('/api/expedientes', upload.single('archivo'), async (req, res) => {
     try {
         const data = req.body;
-        
         const existe = await pool.query('SELECT id FROM expedientes WHERE nro_expediente = $1', [data.nro_expediente]);
         if (existe.rows.length > 0) {
             return res.status(400).json({ error: "El número de expediente ya existe en el sistema." });
         }
 
         const archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
-        const sql = `INSERT INTO expedientes (tipo_expediente, nro_expediente, demandante, dni_demandante, demandado, dni_demandado, juzgado, abogado_encargado, materia, categoria, archivo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
+        const sql = `INSERT INTO expedientes (tipo_expediente, nro_expediente, solicitante, dni_solicitante, juzgado, abogado_encargado, materia, categoria, archivo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`;
         const values = [
-            data.tipo_expediente, data.nro_expediente, data.demandante, 
-            data.dni_demandante, data.demandado, data.dni_demandado, 
-            data.juzgado, data.abogado_encargado, data.materia, data.categoria, archivoPath
+            data.tipo_expediente, data.nro_expediente, data.solicitante, 
+            data.dni_solicitante, data.juzgado, data.abogado_encargado, 
+            data.materia, data.categoria, archivoPath
         ];
         const newExpediente = await pool.query(sql, values);
         res.json(newExpediente.rows[0]);
@@ -102,20 +101,18 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
     try {
         const { id } = req.params;
         const data = req.body;
-
         const existe = await pool.query('SELECT id FROM expedientes WHERE nro_expediente = $1 AND id <> $2', [data.nro_expediente, id]);
         if (existe.rows.length > 0) {
             return res.status(400).json({ error: "No puedes usar ese número de expediente, ya está asignado a otro registro." });
         }
 
         let archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
-        let sql = `UPDATE expedientes SET tipo_expediente=$1, demandante=$2, dni_demandante=$3, demandado=$4, dni_demandado=$5, juzgado=$6, abogado_encargado=$7, materia=$8, categoria=$9, nro_expediente=$10`;
+        let sql = `UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8`;
         const values = [
-            data.tipo_expediente, data.demandante, data.dni_demandante, 
-            data.demandado, data.dni_demandado, data.juzgado, 
-            data.abogado_encargado, data.materia, data.categoria, data.nro_expediente
+            data.tipo_expediente, data.solicitante, data.dni_solicitante, 
+            data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.nro_expediente
         ];
-        let counter = 11;
+        let counter = 9;
         if (archivoPath) {
             sql += `, archivo_url=$${counter}`;
             values.push(archivoPath);
@@ -137,7 +134,7 @@ app.get('/api/expedientes/buscar-global', async (req, res) => {
     try {
         const { query } = req.query;
         if (!query) return res.json([]);
-        const sql = `SELECT * FROM expedientes WHERE nro_expediente ILIKE $1 OR demandante ILIKE $1 OR dni_demandante ILIKE $1 OR demandado ILIKE $1 OR CAST(id AS TEXT) ILIKE $1 ORDER BY id DESC`;
+        const sql = `SELECT * FROM expedientes WHERE nro_expediente ILIKE $1 OR solicitante ILIKE $1 OR dni_solicitante ILIKE $1 OR CAST(id AS TEXT) ILIKE $1 ORDER BY id DESC`;
         const result = await pool.query(sql, [`%${query}%`]);
         res.json(result.rows);
     } catch (err) {

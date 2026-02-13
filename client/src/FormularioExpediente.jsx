@@ -15,10 +15,8 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
       reset({
         tipo_expediente: expedienteAEditar.tipo_expediente,
         nro_expediente: expedienteAEditar.nro_expediente,
-        demandante: expedienteAEditar.demandante,
-        dni_demandante: expedienteAEditar.dni_demandante,
-        demandado: expedienteAEditar.demandado,
-        dni_demandado: expedienteAEditar.dni_demandado,
+        solicitante: expedienteAEditar.solicitante,
+        dni_solicitante: expedienteAEditar.dni_solicitante,
         juzgado: expedienteAEditar.juzgado,
         abogado_encargado: expedienteAEditar.abogado_encargado,
         materia: expedienteAEditar.materia,
@@ -46,10 +44,8 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     const formData = new FormData();
     formData.append('tipo_expediente', data.tipo_expediente || '');
     formData.append('nro_expediente', data.nro_expediente || '');
-    formData.append('demandante', data.demandante || '');
-    formData.append('dni_demandante', data.dni_demandante || '');
-    formData.append('demandado', data.demandado || '');
-    formData.append('dni_demandado', data.dni_demandado || '');
+    formData.append('solicitante', data.solicitante || '');
+    formData.append('dni_solicitante', data.dni_solicitante || '');
     formData.append('juzgado', data.juzgado || '');
     formData.append('abogado_encargado', data.abogado_encargado || '');
     formData.append('materia', data.materia || '');
@@ -68,16 +64,8 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
       onGuardarExitoso();
       onClose();
     } catch (error) {
-      console.error("Error al guardar:", error);
-      // CORRECCIÓN: Capturamos el error 400 del servidor
       const mensajeError = error.response?.data?.error || 'Hubo un problema en el servidor.';
-      
-      Swal.fire({ 
-        icon: 'warning', 
-        title: 'Atención', 
-        text: mensajeError, 
-        confirmButtonColor: '#ffa800' 
-      });
+      Swal.fire({ icon: 'warning', title: 'Atención', text: mensajeError, confirmButtonColor: '#ffa800' });
     }
   };
 
@@ -107,14 +95,10 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
             </div>
           </div>
           <div className="form-section">
-            <h4 className="section-title">2. Partes Procesales</h4>
+            <h4 className="section-title">2. Datos del Solicitante</h4>
             <div className="row-2">
-              <div className="form-control"><label>Demandante *</label><input {...register("demandante", { required: true })} /></div>
-              <div className="form-control"><label>DNI Demandante</label><input {...register("dni_demandante")} /></div>
-            </div>
-            <div className="row-2">
-              <div className="form-control"><label>Demandado *</label><input {...register("demandado", { required: true })} /></div>
-              <div className="form-control"><label>DNI Demandado</label><input {...register("dni_demandado")} /></div>
+              <div className="form-control"><label>Solicitante *</label><input {...register("solicitante", { required: true })} /></div>
+              <div className="form-control"><label>DNI Solicitante</label><input {...register("dni_solicitante")} /></div>
             </div>
           </div>
           <div className="form-section">
@@ -129,7 +113,8 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
                    <button type="button" onClick={handleBorrarArchivo} style={{color: 'red', border: 'none', background: 'none', cursor: 'pointer'}}><FaTrash/> Quitar</button>
                 </div>
               ) : (
-                <input type="file" accept="application/pdf" {...register("archivo")} />
+                <input type="file" accept="application/pdf, .doc, .docx, .xls, .xlsx, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                 {...register("archivo")} />
               )}
             </div>
           </div>

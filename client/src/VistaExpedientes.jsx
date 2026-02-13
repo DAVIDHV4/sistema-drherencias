@@ -13,9 +13,10 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [expedienteAEditar, setExpedienteAEditar] = useState(null);
 
+  // Actualización de categorías iniciales
   useEffect(() => {
     if (categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Notarial") {
-        setSubCategoria("Familia civil");
+        setSubCategoria("Compraventa"); // Nueva categoría inicial por defecto
     } else if (categoriaPrincipal === "Expediente Judicial") {
         setSubCategoria("Judicial");
     } else if (categoriaPrincipal === "Expediente por encargo") {
@@ -82,11 +83,12 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
 
         {(categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Notarial") && (
             <div className="vista-tabs">
-                <button className={`v-tab ${subCategoria === "Familia civil" ? 'active' : ''}`} onClick={() => setSubCategoria("Familia civil")}>Familia civil</button>
-                <button className={`v-tab ${subCategoria === "Civil" ? 'active' : ''}`} onClick={() => setSubCategoria("Civil")}>Civil</button>
-                <button className={`v-tab ${subCategoria === "Contecioso Administrativo" ? 'active' : ''}`} onClick={() => setSubCategoria("Contecioso Administrativo")}>Contecioso Admin.</button>
-                <button className={`v-tab ${subCategoria === "Penal" ? 'active' : ''}`} onClick={() => setSubCategoria("Penal")}>Penal</button>
-                <button className={`v-tab ${subCategoria === "Fiscalias de prevencion de delito sjl" ? 'active' : ''}`} onClick={() => setSubCategoria("Fiscalias de prevencion de delito sjl")}>Fiscalías SJL</button>
+                <button className={`v-tab ${subCategoria === "Compraventa" ? 'active' : ''}`} onClick={() => setSubCategoria("Compraventa")}>Compraventa</button>
+                <button className={`v-tab ${subCategoria === "Sucesión intestada" ? 'active' : ''}`} onClick={() => setSubCategoria("Sucesión intestada")}>Sucesión intestada</button>
+                <button className={`v-tab ${subCategoria === "Poderes" ? 'active' : ''}`} onClick={() => setSubCategoria("Poderes")}>Poderes</button>
+                <button className={`v-tab ${subCategoria === "Cesión de posesión" ? 'active' : ''}`} onClick={() => setSubCategoria("Cesión de posesión")}>Cesión de posesión</button>
+                <button className={`v-tab ${subCategoria === "Prescripción adquisitivo de dominio" ? 'active' : ''}`} onClick={() => setSubCategoria("Prescripción adquisitivo de dominio")}>Prescripción adquisitivo de dominio</button>
+                <button className={`v-tab ${subCategoria === "arrendamiento" ? 'active' : ''}`} onClick={() => setSubCategoria("arrendamiento")}>Arrendamiento</button>
             </div>
         )}
 
@@ -96,10 +98,9 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
                     <tr>
                         <th>ID</th>
                         <th>NRO DE EXPEDIENTE</th>
-                        <th>DEMANDANTE</th>
-                        <th>DNI DEMANDANTE</th>
-                        <th>DEMANDADO</th>
-                        <th>DNI DEMANDADO</th>
+                        <th>ESTADO</th>
+                        <th>SOLICITANTE</th>
+                        <th>DNI SOLICITANTE</th>
                         <th>ABOGADO_ENCARGADO</th>
                         <th>JUZGADO</th>
                         <th style={{textAlign: 'center'}}>ARCHIVO</th>
@@ -108,25 +109,30 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
                 </thead>
                 <tbody>
                     {expedientes.length === 0 ? (
-                        <tr><td colSpan="10" className="v-no-data">No hay expedientes registrados.</td></tr>
+                        <tr><td colSpan="9" className="v-no-data">No hay expedientes registrados.</td></tr>
                     ) : (
                         expedientes.map((exp) => (
                             <tr key={exp.id}>
                                 <td>{exp.id}</td>
                                 <td style={{fontWeight: 'bold'}}>{exp.nro_expediente}</td>
-                                <td>{exp.demandante}</td>
-                                <td>{exp.dni_demandante}</td>
-                                <td>{exp.demandado}</td>
-                                <td>{exp.dni_demandado}</td>
+                                <td>
+                                    <span className={`badge-estado ${exp.estado?.toLowerCase().replace(/\s+/g, '-')}`}>
+                                        {exp.estado || 'En Trámite'}
+                                    </span>
+                                </td>
+                                <td>{exp.solicitante}</td>
+                                <td>{exp.dni_solicitante}</td>
                                 <td>{exp.abogado_encargado}</td>
                                 <td>{exp.juzgado}</td>
                                 <td style={{textAlign: 'center'}}>
-                                    {exp.archivo_url ? (
-                                        <a href={`${window.location.origin}${exp.archivo_url}`} target="_blank" rel="noopener noreferrer" className="btn-ver-pdf">
-                                            <FaFilePdf /> PDF
-                                        </a>
-                                    ) : <span className="no-pdf">-</span>}
-                                </td>
+    {exp.archivo_url ? (
+        <a href={`${window.location.origin}${exp.archivo_url}`} target="_blank" rel="noopener noreferrer" className="btn-ver-pdf">
+            {exp.archivo_url.endsWith('.pdf') ? '📄 PDF' : 
+             exp.archivo_url.match(/\.(doc|docx)$/) ? '📝 Word' : 
+             exp.archivo_url.match(/\.(xls|xlsx)$/) ? '📊 Excel' : '📎 Ver'}
+        </a>
+    ) : <span className="no-pdf">-</span>}
+</td>
                                 <td style={{textAlign: 'right'}}>
                                     <button onClick={() => handleEditar(exp)} className="v-btn-edit"><FaEdit /></button>
                                 </td>
