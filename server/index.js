@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-const frontendPath = path.join(__dirname, '../client');
+const frontendPath = path.join(__dirname, '../dist');
 app.use(express.static(frontendPath));
 
 const uploadDir = path.join(__dirname, 'uploads');
@@ -122,8 +122,8 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
     }
 });
 
-app.get('/*', (req, res) => {
-    res.sendFile(path.resolve(frontendPath, 'index.html'));
+app.use((req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 app.listen(PORT, () => {

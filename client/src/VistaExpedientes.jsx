@@ -29,7 +29,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
     try {
       if (!subCategoria) return;
 
-      const res = await axios.get('http://localhost:4000/api/expedientes', {
+      const res = await axios.get('/api/expedientes', {
         params: { busqueda, categoria: subCategoria }
       });
       setExpedientes(res.data);
@@ -118,7 +118,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
                                 <td>{exp.juzgado}</td>
                                 <td style={{textAlign: 'center'}}>
                                     {exp.archivo_url ? (
-                                        <a href={`http://localhost:4000${exp.archivo_url}`} target="_blank" rel="noopener noreferrer" className="btn-ver-pdf">
+                                        <a href={`${window.location.origin}${exp.archivo_url}`} target="_blank" rel="noopener noreferrer" className="btn-ver-pdf">
                                             <FaFilePdf /> Ver PDF
                                         </a>
                                     ) : <span className="no-pdf">Sin archivo</span>}

@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import axios from 'axios';
 import MenuPrincipal from './MenuPrincipal';
-import VistaExpedientes from './VistaExpedientes'; // El nuevo componente que reemplaza al dashboard
+import VistaExpedientes from './VistaExpedientes'; 
 import './App.css'; 
 
 function App() {
   const [usuario, setUsuario] = useState(null);
-  const [vistaActual, setVistaActual] = useState('menu'); // 'menu' o 'tabla'
+  const [vistaActual, setVistaActual] = useState('menu'); 
   const [opcionSeleccionada, setOpcionSeleccionada] = useState("");
 
-  // --- LOGIN ---
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -17,7 +16,7 @@ function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:4000/api/login', { usuario: username, password });
+      const res = await axios.post('/api/login', { usuario: username, password });
       setUsuario(res.data.usuario);
       setVistaActual('menu'); 
       setError("");
@@ -34,7 +33,6 @@ function App() {
     setPassword("");
   };
 
-  // NAVEGACIÓN
   const irATabla = (opcion) => {
     setOpcionSeleccionada(opcion);
     setVistaActual('tabla');
@@ -45,7 +43,6 @@ function App() {
     setOpcionSeleccionada("");
   };
 
-  // VISTA LOGIN
   if (!usuario) {
     return (
       <div className="login-container">
@@ -62,12 +59,10 @@ function App() {
     );
   }
 
-  // VISTA MENÚ PRINCIPAL (TARJETAS)
   if (vistaActual === 'menu') {
     return <MenuPrincipal usuario={usuario} onLogout={handleLogout} onSeleccionar={irATabla} />;
   }
 
-  // VISTA TABLA (SIN SIDEBAR)
   if (vistaActual === 'tabla') {
     return (
       <VistaExpedientes 
