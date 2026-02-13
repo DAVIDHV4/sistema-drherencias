@@ -20,7 +20,8 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
         juzgado: expedienteAEditar.juzgado,
         abogado_encargado: expedienteAEditar.abogado_encargado,
         materia: expedienteAEditar.materia,
-        categoria: expedienteAEditar.categoria
+        categoria: expedienteAEditar.categoria,
+        estado: expedienteAEditar.estado
       });
       if (expedienteAEditar.archivo_url) {
         setArchivoExistente(expedienteAEditar.archivo_url);
@@ -29,6 +30,7 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     } else {
       if (categoriaPreseleccionada) setValue('categoria', categoriaPreseleccionada);
       if (categoriaPrincipalMenu) setValue('tipo_expediente', categoriaPrincipalMenu);
+      setValue('estado', 'En Trámite');
     }
   }, [expedienteAEditar, reset, categoriaPreseleccionada, categoriaPrincipalMenu, setValue]);
 
@@ -40,7 +42,6 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
 
   const onSubmit = async (data) => {
     Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-    
     const formData = new FormData();
     formData.append('tipo_expediente', data.tipo_expediente || '');
     formData.append('nro_expediente', data.nro_expediente || '');
@@ -50,6 +51,7 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     formData.append('abogado_encargado', data.abogado_encargado || '');
     formData.append('materia', data.materia || '');
     formData.append('categoria', data.categoria || '');
+    formData.append('estado', data.estado || 'En Trámite');
     formData.append('eliminar_archivo', eliminarArchivo ? 'true' : 'false');
 
     if (data.archivo && data.archivo.length > 0) formData.append('archivo', data.archivo[0]);
@@ -60,11 +62,11 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
       } else {
         await axios.post('/api/expedientes', formData);
       }
-      await Swal.fire({ icon: 'success', title: '¡Listo!', text: 'Los datos se guardaron correctamente.', confirmButtonColor: '#004e8e' });
+      await Swal.fire({ icon: 'success', title: '¡Listo!', confirmButtonColor: '#004e8e' });
       onGuardarExitoso();
       onClose();
     } catch (error) {
-      const mensajeError = error.response?.data?.error || 'Hubo un problema en el servidor.';
+      const mensajeError = error.response?.data?.error || 'Error en el servidor';
       Swal.fire({ icon: 'warning', title: 'Atención', text: mensajeError, confirmButtonColor: '#ffa800' });
     }
   };
@@ -80,13 +82,14 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
           <div className="form-section">
             <h4 className="section-title">1. Información Principal</h4>
             <div className="row-2">
+              <div className="form-control"><label>Nro. Expediente *</label><input {...register("nro_expediente", { required: true })} /></div>
               <div className="form-control">
-                <label>Tipo de Expediente</label>
-                <input {...register("tipo_expediente")} readOnly style={{backgroundColor: '#f8f9fa'}} />
-              </div>
-              <div className="form-control">
-                <label>Nro. Expediente *</label>
-                <input {...register("nro_expediente", { required: true })} placeholder="Ej: 123-2024" />
+                <label>Estado</label>
+                <select {...register("estado")} className="form-select">
+                  <option value="Inscrito">Inscrito</option>
+                  <option value="Calificacion">Calificacion</option>
+                  <option value="Inscripcion">Inscripcion</option>
+                </select>
               </div>
             </div>
             <div className="row-2">
@@ -106,15 +109,14 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
             <div className="form-control"><label>Abogado Encargado</label><input {...register("abogado_encargado")} /></div>
             <div className="form-control"><label>Materia</label><textarea rows="2" {...register("materia")}></textarea></div>
             <div className="form-control" style={{background: '#f8f9fa', padding: '10px', borderRadius: '5px'}}>
-              <label>Expediente Digital</label>
+              <label>Expediente Digital (PDF, Word, Excel)</label>
               {archivoExistente ? (
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                    <a href={`${window.location.origin}${archivoExistente}`} target="_blank" rel="noopener noreferrer">Ver Archivo</a>
                    <button type="button" onClick={handleBorrarArchivo} style={{color: 'red', border: 'none', background: 'none', cursor: 'pointer'}}><FaTrash/> Quitar</button>
                 </div>
               ) : (
-                <input type="file" accept="application/pdf, .doc, .docx, .xls, .xlsx, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                 {...register("archivo")} />
+                <input type="file" accept=".pdf, .doc, .docx, .xls, .xlsx" {...register("archivo")} />
               )}
             </div>
           </div>

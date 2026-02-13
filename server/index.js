@@ -19,10 +19,12 @@ const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir); }
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => { cb(null, uploadDir); },
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+         const nombreOriginal = file.originalname.replace(/\s+/g, '_');
+        cb(null, nombreOriginal);
     }
 });
 const upload = multer({ storage: storage });
