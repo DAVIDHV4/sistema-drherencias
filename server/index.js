@@ -122,8 +122,8 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
     }
 });
 
-app.get('/:path*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+app.get('/*', (req, res) => {
+    res.sendFile(path.resolve(frontendPath, 'index.html'));
 });
 
 app.listen(PORT, () => {
