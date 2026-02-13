@@ -8,11 +8,11 @@ function App() {
   const [usuario, setUsuario] = useState(null);
   const [vistaActual, setVistaActual] = useState('menu'); 
   const [opcionSeleccionada, setOpcionSeleccionada] = useState("");
+  const [filtroBuscador, setFiltroBuscador] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // Recuperar sesión al cargar la página
   useEffect(() => {
     const usuarioGuardado = localStorage.getItem('usuario_sistema');
     if (usuarioGuardado) {
@@ -26,7 +26,6 @@ function App() {
       const res = await axios.post('/api/login', { usuario: username, password });
       if (res.data.usuario) {
         setUsuario(res.data.usuario);
-        // Guardar en el almacenamiento del navegador
         localStorage.setItem('usuario_sistema', res.data.usuario);
         setVistaActual('menu'); 
         setError("");
@@ -37,23 +36,25 @@ function App() {
   };
 
   const handleLogout = () => {
-    // Limpiar almacenamiento al salir
     localStorage.removeItem('usuario_sistema');
     setUsuario(null);
     setVistaActual('menu');
     setOpcionSeleccionada("");
+    setFiltroBuscador("");
     setUsername("");
     setPassword("");
   };
 
-  const irATabla = (opcion) => {
+  const irATabla = (opcion, busqueda = "") => {
     setOpcionSeleccionada(opcion);
+    setFiltroBuscador(busqueda);
     setVistaActual('tabla');
   };
 
   const volverAlMenu = () => {
     setVistaActual('menu');
     setOpcionSeleccionada("");
+    setFiltroBuscador("");
   };
 
   if (!usuario) {
@@ -81,6 +82,7 @@ function App() {
       <VistaExpedientes 
         usuario={usuario} 
         categoriaPrincipal={opcionSeleccionada} 
+        filtroInicial={filtroBuscador}
         onLogout={handleLogout} 
         onVolver={volverAlMenu}
       />

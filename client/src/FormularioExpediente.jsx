@@ -7,7 +7,6 @@ import './estilos/Formulario.css';
 
 function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, categoriaPreseleccionada, categoriaPrincipalMenu }) {
   const { register, handleSubmit, reset, setValue } = useForm();
-  
   const [archivoExistente, setArchivoExistente] = useState(null);
   const [eliminarArchivo, setEliminarArchivo] = useState(false);
 
@@ -22,10 +21,9 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
         dni_demandado: expedienteAEditar.dni_demandado,
         juzgado: expedienteAEditar.juzgado,
         abogado_encargado: expedienteAEditar.abogado_encargado,
-        detalle: expedienteAEditar.detalle,
+        materia: expedienteAEditar.materia,
         categoria: expedienteAEditar.categoria
       });
-
       if (expedienteAEditar.archivo_url) {
         setArchivoExistente(expedienteAEditar.archivo_url);
         setEliminarArchivo(false);
@@ -43,13 +41,8 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
   };
 
   const onSubmit = async (data) => {
-    Swal.fire({
-      title: 'Guardando...',
-      text: 'Validando datos...',
-      allowOutsideClick: false,
-      didOpen: () => { Swal.showLoading(); }
-    });
-
+    Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+    
     const formData = new FormData();
     formData.append('tipo_expediente', data.tipo_expediente || '');
     formData.append('nro_expediente', data.nro_expediente || '');
@@ -59,35 +52,30 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     formData.append('dni_demandado', data.dni_demandado || '');
     formData.append('juzgado', data.juzgado || '');
     formData.append('abogado_encargado', data.abogado_encargado || '');
-    formData.append('detalle', data.detalle || '');
+    formData.append('materia', data.materia || '');
     formData.append('categoria', data.categoria || '');
     formData.append('eliminar_archivo', eliminarArchivo ? 'true' : 'false');
 
-    if (data.archivo && data.archivo.length > 0) {
-      formData.append('archivo', data.archivo[0]);
-    }
+    if (data.archivo && data.archivo.length > 0) formData.append('archivo', data.archivo[0]);
 
     try {
       if (expedienteAEditar) {
-        await axios.put(`/api/expedientes/${expedienteAEditar.id}`, formData, { 
-          headers: { 'Content-Type': 'multipart/form-data' } 
-        });
+        await axios.put(`/api/expedientes/${expedienteAEditar.id}`, formData);
       } else {
-        await axios.post('/api/expedientes', formData, { 
-          headers: { 'Content-Type': 'multipart/form-data' } 
-        });
+        await axios.post('/api/expedientes', formData);
       }
-      
-      await Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Operación realizada con éxito.', confirmButtonColor: '#004e8e' });
+      await Swal.fire({ icon: 'success', title: '¡Listo!', text: 'Los datos se guardaron correctamente.', confirmButtonColor: '#004e8e' });
       onGuardarExitoso();
       onClose();
-
     } catch (error) {
       console.error("Error al guardar:", error);
+      // CORRECCIÓN: Capturamos el error 400 del servidor
+      const mensajeError = error.response?.data?.error || 'Hubo un problema en el servidor.';
+      
       Swal.fire({ 
-        icon: 'error', 
-        title: 'Error', 
-        text: 'No se pudo guardar. Verifica la consola para más detalles.', 
+        icon: 'warning', 
+        title: 'Atención', 
+        text: mensajeError, 
         confirmButtonColor: '#ffa800' 
       });
     }
@@ -97,83 +85,54 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     <div className="modal-backdrop">
       <div className="modal-card">
         <div className="modal-header">
-          <h3>{expedienteAEditar ? `Editar: ${expedienteAEditar.nro_expediente}` : `Nuevo: ${categoriaPreseleccionada}`}</h3>
+          <h3>{expedienteAEditar ? `Editar ID: ${expedienteAEditar.id}` : `Nuevo: ${categoriaPreseleccionada}`}</h3>
           <button className="btn-close-modal" onClick={onClose}>&times;</button>
         </div>
-        
         <form onSubmit={handleSubmit(onSubmit)} className="modal-body">
           <div className="form-section">
             <h4 className="section-title">1. Información Principal</h4>
             <div className="row-2">
               <div className="form-control">
                 <label>Tipo de Expediente</label>
-                <input {...register("tipo_expediente")} readOnly style={{backgroundColor: '#f8f9fa', color: '#888', cursor: 'not-allowed'}} />
+                <input {...register("tipo_expediente")} readOnly style={{backgroundColor: '#f8f9fa'}} />
               </div>
               <div className="form-control">
-                <label>Nro. Expediente <span className="req">*</span></label>
-                <input {...register("nro_expediente", { required: true })} placeholder="Ej: 123-2024-JLA" />
+                <label>Nro. Expediente *</label>
+                <input {...register("nro_expediente", { required: true })} placeholder="Ej: 123-2024" />
               </div>
             </div>
             <div className="row-2">
-              <div className="form-control">
-                <label>Categoría (Sub-Categoría)</label>
-                <input type="text" {...register("categoria")} readOnly style={{backgroundColor: '#e9ecef', color: '#555', cursor: 'not-allowed', fontWeight: 'bold'}} />
-              </div>
-               <div className="form-control">
-                <label>Juzgado / Fiscalía</label>
-                <input {...register("juzgado")} />
-              </div>
+              <div className="form-control"><label>Categoría</label><input {...register("categoria")} readOnly style={{backgroundColor: '#f8f9fa'}} /></div>
+              <div className="form-control"><label>Juzgado / Fiscalía</label><input {...register("juzgado")} /></div>
             </div>
           </div>
-
           <div className="form-section">
             <h4 className="section-title">2. Partes Procesales</h4>
             <div className="row-2">
-              <div className="form-control">
-                <label>Demandante <span className="req">*</span></label>
-                <input {...register("demandante", { required: true })} />
-              </div>
-              <div className="form-control">
-                <label>DNI Demandante</label>
-                <input {...register("dni_demandante")} />
-              </div>
+              <div className="form-control"><label>Demandante *</label><input {...register("demandante", { required: true })} /></div>
+              <div className="form-control"><label>DNI Demandante</label><input {...register("dni_demandante")} /></div>
             </div>
             <div className="row-2">
-               <div className="form-control">
-                <label>Demandado <span className="req">*</span></label>
-                <input {...register("demandado", { required: true })} />
-              </div>
-               <div className="form-control">
-                <label>DNI Demandado</label>
-                <input {...register("dni_demandado")} />
-              </div>
+              <div className="form-control"><label>Demandado *</label><input {...register("demandado", { required: true })} /></div>
+              <div className="form-control"><label>DNI Demandado</label><input {...register("dni_demandado")} /></div>
             </div>
           </div>
-
           <div className="form-section">
-            <h4 className="section-title">3. Archivos y Otros</h4>
-            <div className="form-control">
-              <label>Abogado Encargado</label>
-              <input {...register("abogado_encargado")} />
-            </div>
-            <div className="form-control">
-              <label>Detalle</label>
-              <textarea className="form-textarea" rows="2" {...register("detalle")}></textarea>
-            </div>
-            
+            <h4 className="section-title">3. Otros Detalles</h4>
+            <div className="form-control"><label>Abogado Encargado</label><input {...register("abogado_encargado")} /></div>
+            <div className="form-control"><label>Materia</label><textarea rows="2" {...register("materia")}></textarea></div>
             <div className="form-control" style={{background: '#f8f9fa', padding: '10px', borderRadius: '5px'}}>
-              <label>Expediente Digital (PDF)</label>
+              <label>Expediente Digital</label>
               {archivoExistente ? (
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                   <a href={`${window.location.origin}${archivoExistente}`} target="_blank" rel="noopener noreferrer" style={{color: '#004e8e', fontWeight: 'bold'}}>Ver Archivo Actual</a>
-                   <button type="button" onClick={handleBorrarArchivo} style={{color: 'red', border: 'none', background: 'none', cursor: 'pointer'}}> <FaTrash/> Borrar</button>
+                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                   <a href={`${window.location.origin}${archivoExistente}`} target="_blank" rel="noopener noreferrer">Ver Archivo</a>
+                   <button type="button" onClick={handleBorrarArchivo} style={{color: 'red', border: 'none', background: 'none', cursor: 'pointer'}}><FaTrash/> Quitar</button>
                 </div>
               ) : (
                 <input type="file" accept="application/pdf" {...register("archivo")} />
               )}
             </div>
           </div>
-
           <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-cancel">Cancelar</button>
             <button type="submit" className="btn-save">Guardar</button>

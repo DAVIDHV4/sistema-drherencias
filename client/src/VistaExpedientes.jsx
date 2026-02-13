@@ -4,17 +4,17 @@ import { FaFilePdf, FaPlus, FaSignOutAlt, FaEdit, FaSearch, FaHome } from 'react
 import FormularioExpediente from './FormularioExpediente';
 import './estilos/VistaExpedientes.css'; 
 
-function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
+function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout, onVolver }) {
   
   const [expedientes, setExpedientes] = useState([]);
-  const [busqueda, setBusqueda] = useState("");
+  const [busqueda, setBusqueda] = useState(filtroInicial || "");
   const [subCategoria, setSubCategoria] = useState(""); 
   
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [expedienteAEditar, setExpedienteAEditar] = useState(null);
 
   useEffect(() => {
-    if (categoriaPrincipal === "Expediente Administrativo y Notarial") {
+    if (categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Notarial") {
         setSubCategoria("Familia civil");
     } else if (categoriaPrincipal === "Expediente Judicial") {
         setSubCategoria("Judicial");
@@ -27,9 +27,12 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
 
   const cargarExpedientes = async () => {
     try {
-      if (!subCategoria) return;
       const res = await axios.get('/api/expedientes', {
-        params: { busqueda, categoria: subCategoria }
+        params: { 
+          busqueda, 
+          categoria: subCategoria,
+          tipo_expediente: categoriaPrincipal 
+        }
       });
       setExpedientes(res.data);
     } catch (error) {
@@ -46,14 +49,12 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
 
   return (
     <div className="vista-container">
-      
       <header className="vista-topbar">
         <div className="topbar-left">
             <button onClick={onVolver} className="btn-home" style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '16px', color: '#555', fontWeight: 'bold'}}>
                 <FaHome size={20} color="#3699ff"/> Menú Principal
             </button>
         </div>
-        
         <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
             <div className="vista-user">Bienvenido, <span>{usuario}</span></div>
             <button onClick={onLogout} className="vista-logout">Salir <FaSignOutAlt /></button>
@@ -61,10 +62,8 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
       </header>
 
       <div className="vista-content">
-        
         <div className="vista-header-row">
             <h2>{categoriaPrincipal}</h2>
-            
             <div className="vista-actions">
                 <div className="vista-search">
                     <FaSearch className="icon-search"/>
@@ -81,7 +80,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
             </div>
         </div>
 
-        {categoriaPrincipal === "Expediente Administrativo y Notarial" && (
+        {(categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Notarial") && (
             <div className="vista-tabs">
                 <button className={`v-tab ${subCategoria === "Familia civil" ? 'active' : ''}`} onClick={() => setSubCategoria("Familia civil")}>Familia civil</button>
                 <button className={`v-tab ${subCategoria === "Civil" ? 'active' : ''}`} onClick={() => setSubCategoria("Civil")}>Civil</button>
@@ -93,47 +92,50 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
 
         <div className="vista-table-card">
             <table className="vista-table">
-               <thead>
-    <tr>
-        <th>ID</th>
-        <th>NRO. EXP</th>
-        <th>DEMANDANTE (CLIENTE)</th>
-        <th>DNI</th>
-        <th>DEMANDADO / CASO</th>
-        <th>JUZGADO</th>
-        <th>ABOGADO</th>
-        <th style={{textAlign: 'center'}}>EXPEDIENTE DIGITAL</th>
-        <th style={{textAlign: 'right'}}>ACCIONES</th>
-    </tr>
-</thead>
-<tbody>
-    {expedientes.map((exp) => (
-        <tr key={exp.id}>
-            <td>{exp.id}</td>
-            <td style={{fontWeight: 'bold'}}>{exp.nro_expediente}</td>
-            <td style={{fontWeight: 'bold', color: '#1e1e2d'}}>{exp.demandante}</td>
-            <td>{exp.dni_demandante}</td>
-            <td>{exp.demandante}</td>
-            <td>{exp.dni_demandado}</td>
-            <td>{exp.demandado}</td>
-            <td>{exp.juzgado}</td>
-            <td>{exp.abogado_encargado}</td>
-            <td style={{textAlign: 'center'}}>
-                {exp.archivo_url ? (
-                    <a href={`${window.location.origin}${exp.archivo_url}`} target="_blank" rel="noopener noreferrer" className="btn-ver-pdf">
-                        <FaFilePdf /> Ver PDF
-                    </a>
-                ) : <span className="no-pdf">Sin archivo</span>}
-            </td>
-            <td style={{textAlign: 'right'}}>
-                <button onClick={() => handleEditar(exp)} className="v-btn-edit"><FaEdit /></button>
-            </td>
-        </tr>
-    ))}
-</tbody>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>NRO DE EXPEDIENTE</th>
+                        <th>DEMANDANTE</th>
+                        <th>DNI DEMANDANTE</th>
+                        <th>DEMANDADO</th>
+                        <th>DNI DEMANDADO</th>
+                        <th>ABOGADO_ENCARGADO</th>
+                        <th>JUZGADO</th>
+                        <th style={{textAlign: 'center'}}>ARCHIVO</th>
+                        <th style={{textAlign: 'right'}}>ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {expedientes.length === 0 ? (
+                        <tr><td colSpan="10" className="v-no-data">No hay expedientes registrados.</td></tr>
+                    ) : (
+                        expedientes.map((exp) => (
+                            <tr key={exp.id}>
+                                <td>{exp.id}</td>
+                                <td style={{fontWeight: 'bold'}}>{exp.nro_expediente}</td>
+                                <td>{exp.demandante}</td>
+                                <td>{exp.dni_demandante}</td>
+                                <td>{exp.demandado}</td>
+                                <td>{exp.dni_demandado}</td>
+                                <td>{exp.abogado_encargado}</td>
+                                <td>{exp.juzgado}</td>
+                                <td style={{textAlign: 'center'}}>
+                                    {exp.archivo_url ? (
+                                        <a href={`${window.location.origin}${exp.archivo_url}`} target="_blank" rel="noopener noreferrer" className="btn-ver-pdf">
+                                            <FaFilePdf /> PDF
+                                        </a>
+                                    ) : <span className="no-pdf">-</span>}
+                                </td>
+                                <td style={{textAlign: 'right'}}>
+                                    <button onClick={() => handleEditar(exp)} className="v-btn-edit"><FaEdit /></button>
+                                </td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
             </table>
         </div>
-
       </div>
 
       {mostrarFormulario && (

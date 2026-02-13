@@ -28,54 +28,48 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 app.use('/uploads', express.static(uploadDir));
 
-app.get('/api/crear-hash/:password', async (req, res) => {
-    const { password } = req.params;
-    const salt = await bcrypt.getSalt(10);
-    const hash = await bcrypt.hash(password, salt);
-    res.json({ original: password, encriptada: hash });
-});
-
 app.post('/api/login', async (req, res) => {
     const { usuario, password } = req.body;
     try {
         const result = await pool.query('SELECT * FROM usuarios WHERE usuario = $1', [usuario]);
-        if (result.rows.length === 0) {
-            return res.status(401).json({ error: "Usuario no encontrado" });
-        }
+        if (result.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
         const user = result.rows[0];
         const esCorrecta = await bcrypt.compare(password, user.password);
-        if (esCorrecta) {
-            res.json({ mensaje: "Login exitoso", usuario: user.usuario });
-        } else {
-            res.status(401).json({ error: "Contraseña incorrecta" });
-        }
+        if (esCorrecta) res.json({ mensaje: "Login exitoso", usuario: user.usuario });
+        else res.status(401).json({ error: "Contraseña incorrecta" });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ error: "Error en el servidor" });
     }
 });
 
 app.get('/api/expedientes', async (req, res) => {
     try {
-        const { busqueda, categoria } = req.query;
+        const { busqueda, categoria, tipo_expediente } = req.query;
         let sql = "SELECT * FROM expedientes WHERE 1=1";
         const values = [];
         let counter = 1;
+
+        if (tipo_expediente) {
+            sql += ` AND tipo_expediente = $${counter}`;
+            values.push(tipo_expediente);
+            counter++;
+        }
         if (categoria) {
             sql += ` AND categoria = $${counter}`;
             values.push(categoria);
             counter++;
         }
         if (busqueda) {
-            sql += ` AND (demandante ILIKE $${counter} OR dni_demandante ILIKE $${counter} OR nro_expediente ILIKE $${counter} OR demandado ILIKE $${counter})`;
+            sql += ` AND (demandante ILIKE $${counter} OR nro_expediente ILIKE $${counter} OR demandado ILIKE $${counter} OR dni_demandante ILIKE $${counter} OR CAST(id AS TEXT) ILIKE $${counter})`;
             values.push(`%${busqueda}%`);
             counter++;
         }
-        sql += " ORDER BY fecha_registro DESC";
+
+        sql += " ORDER BY id DESC";
         const result = await pool.query(sql, values);
         res.json(result.rows);
     } catch (err) {
-        console.error("Error SQL:", err.message);
+        console.error(err);
         res.status(500).json({ error: "Error al obtener expedientes" });
     }
 });
@@ -83,30 +77,24 @@ app.get('/api/expedientes', async (req, res) => {
 app.post('/api/expedientes', upload.single('archivo'), async (req, res) => {
     try {
         const data = req.body;
+        
+        const existe = await pool.query('SELECT id FROM expedientes WHERE nro_expediente = $1', [data.nro_expediente]);
+        if (existe.rows.length > 0) {
+            return res.status(400).json({ error: "El número de expediente ya existe en el sistema." });
+        }
+
         const archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
-        
-        const sql = `INSERT INTO expedientes (tipo_expediente, nro_expediente, demandante, dni_demandante, demandado, dni_demandado, juzgado, abogado_encargado, detalle, categoria, archivo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
-        
-        // CORRECCIÓN: Los nombres de data.xxx deben coincidir con el formData del frontend
+        const sql = `INSERT INTO expedientes (tipo_expediente, nro_expediente, demandante, dni_demandante, demandado, dni_demandado, juzgado, abogado_encargado, materia, categoria, archivo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
         const values = [
-            data.tipo_expediente, 
-            data.nro_expediente, 
-            data.demandante, 
-            data.dni_demandante, 
-            data.demandado, 
-            data.dni_demandado, 
-            data.juzgado, 
-            data.abogado_encargado, 
-            data.detalle, 
-            data.categoria, 
-            archivoPath
+            data.tipo_expediente, data.nro_expediente, data.demandante, 
+            data.dni_demandante, data.demandado, data.dni_demandado, 
+            data.juzgado, data.abogado_encargado, data.materia, data.categoria, archivoPath
         ];
-        
         const newExpediente = await pool.query(sql, values);
         res.json(newExpediente.rows[0]);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Error al guardar expediente" });
+        res.status(500).json({ error: "Error al guardar" });
     }
 });
 
@@ -114,25 +102,20 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
     try {
         const { id } = req.params;
         const data = req.body;
+
+        const existe = await pool.query('SELECT id FROM expedientes WHERE nro_expediente = $1 AND id <> $2', [data.nro_expediente, id]);
+        if (existe.rows.length > 0) {
+            return res.status(400).json({ error: "No puedes usar ese número de expediente, ya está asignado a otro registro." });
+        }
+
         let archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
-        
-        // CORRECCIÓN: Se agrega nro_expediente ($10) a la lista de actualización
-        let sql = `UPDATE expedientes SET tipo_expediente=$1, demandante=$2, dni_demandante=$3, demandado=$4, dni_demandado=$5, juzgado=$6, abogado_encargado=$7, detalle=$8, categoria=$9, nro_expediente=$10`;
-        
+        let sql = `UPDATE expedientes SET tipo_expediente=$1, demandante=$2, dni_demandante=$3, demandado=$4, dni_demandado=$5, juzgado=$6, abogado_encargado=$7, materia=$8, categoria=$9, nro_expediente=$10`;
         const values = [
-            data.tipo_expediente, 
-            data.demandante, 
-            data.dni_demandante, 
-            data.demandado, 
-            data.dni_demandado, 
-            data.juzgado, 
-            data.abogado_encargado, 
-            data.detalle, 
-            data.categoria,
-            data.nro_expediente // Nuevo valor para permitir edición del número
+            data.tipo_expediente, data.demandante, data.dni_demandante, 
+            data.demandado, data.dni_demandado, data.juzgado, 
+            data.abogado_encargado, data.materia, data.categoria, data.nro_expediente
         ];
-        
-        let counter = 11; // El contador ahora empieza en 11
+        let counter = 11;
         if (archivoPath) {
             sql += `, archivo_url=$${counter}`;
             values.push(archivoPath);
@@ -140,26 +123,28 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
         } else if (data.eliminar_archivo === 'true') {
             sql += `, archivo_url=NULL`;
         }
-        
         sql += ` WHERE id=$${counter} RETURNING *`;
         values.push(id);
-        
-        const updatedExpediente = await pool.query(sql, values);
-        
-        if (updatedExpediente.rows.length === 0) {
-            return res.status(404).json({ error: "Expediente no encontrado" });
-        }
-        res.json(updatedExpediente.rows[0]);
+        const result = await pool.query(sql, values);
+        res.json(result.rows[0]);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Error al actualizar expediente" });
+        res.status(500).json({ error: "Error al actualizar" });
     }
 });
 
-app.use((req, res, next) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+app.get('/api/expedientes/buscar-global', async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) return res.json([]);
+        const sql = `SELECT * FROM expedientes WHERE nro_expediente ILIKE $1 OR demandante ILIKE $1 OR dni_demandante ILIKE $1 OR demandado ILIKE $1 OR CAST(id AS TEXT) ILIKE $1 ORDER BY id DESC`;
+        const result = await pool.query(sql, [`%${query}%`]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Error en búsqueda global" });
+    }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor listo en http://localhost:${PORT}`);
-});
+app.use((req, res) => { res.sendFile(path.join(frontendPath, 'index.html')); });
+app.listen(PORT, () => { console.log(`🚀 Servidor listo en puerto ${PORT}`); });
