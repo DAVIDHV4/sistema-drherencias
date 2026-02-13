@@ -30,7 +30,7 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     } else {
       if (categoriaPreseleccionada) setValue('categoria', categoriaPreseleccionada);
       if (categoriaPrincipalMenu) setValue('tipo_expediente', categoriaPrincipalMenu);
-      setValue('estado', 'En Trámite');
+      setValue('estado', 'Inscrito');
     }
   }, [expedienteAEditar, reset, categoriaPreseleccionada, categoriaPrincipalMenu, setValue]);
 
@@ -51,7 +51,7 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     formData.append('abogado_encargado', data.abogado_encargado || '');
     formData.append('materia', data.materia || '');
     formData.append('categoria', data.categoria || '');
-    formData.append('estado', data.estado || 'En Trámite');
+    formData.append('estado', data.estado || 'Inscrito');
     formData.append('eliminar_archivo', eliminarArchivo ? 'true' : 'false');
 
     if (data.archivo && data.archivo.length > 0) formData.append('archivo', data.archivo[0]);
