@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import MenuPrincipal from './MenuPrincipal';
 import VistaExpedientes from './VistaExpedientes'; 
@@ -8,24 +8,37 @@ function App() {
   const [usuario, setUsuario] = useState(null);
   const [vistaActual, setVistaActual] = useState('menu'); 
   const [opcionSeleccionada, setOpcionSeleccionada] = useState("");
-
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  // Recuperar sesión al cargar la página
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem('usuario_sistema');
+    if (usuarioGuardado) {
+      setUsuario(usuarioGuardado);
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const res = await axios.post('/api/login', { usuario: username, password });
-      setUsuario(res.data.usuario);
-      setVistaActual('menu'); 
-      setError("");
+      if (res.data.usuario) {
+        setUsuario(res.data.usuario);
+        // Guardar en el almacenamiento del navegador
+        localStorage.setItem('usuario_sistema', res.data.usuario);
+        setVistaActual('menu'); 
+        setError("");
+      }
     } catch (err) {
       setError("Credenciales incorrectas");
     }
   };
 
   const handleLogout = () => {
+    // Limpiar almacenamiento al salir
+    localStorage.removeItem('usuario_sistema');
     setUsuario(null);
     setVistaActual('menu');
     setOpcionSeleccionada("");

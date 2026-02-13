@@ -30,7 +30,7 @@ app.use('/uploads', express.static(uploadDir));
 
 app.get('/api/crear-hash/:password', async (req, res) => {
     const { password } = req.params;
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.getSalt(10);
     const hash = await bcrypt.hash(password, salt);
     res.json({ original: password, encriptada: hash });
 });
@@ -84,8 +84,24 @@ app.post('/api/expedientes', upload.single('archivo'), async (req, res) => {
     try {
         const data = req.body;
         const archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
-        const sql = `INSERT INTO expedientes (nro_expediente, demandante, dni_demandante, demandado, dni_demandado, juzgado, abogado_encargado, detalle, categoria, archivo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`;
-        const values = [data.nro_expediente, data.cliente, data.dni_cliente, data.caso, data.dni_procurador, data.proceso_administrativo, data.procurador, data.observaciones, data.categoria, archivoPath];
+        
+        const sql = `INSERT INTO expedientes (tipo_expediente, nro_expediente, demandante, dni_demandante, demandado, dni_demandado, juzgado, abogado_encargado, detalle, categoria, archivo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
+        
+        // CORRECCIÓN: Los nombres de data.xxx deben coincidir con el formData del frontend
+        const values = [
+            data.tipo_expediente, 
+            data.nro_expediente, 
+            data.demandante, 
+            data.dni_demandante, 
+            data.demandado, 
+            data.dni_demandado, 
+            data.juzgado, 
+            data.abogado_encargado, 
+            data.detalle, 
+            data.categoria, 
+            archivoPath
+        ];
+        
         const newExpediente = await pool.query(sql, values);
         res.json(newExpediente.rows[0]);
     } catch (err) {
@@ -99,9 +115,24 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
         const { id } = req.params;
         const data = req.body;
         let archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
-        let sql = `UPDATE expedientes SET demandante=$1, dni_demandante=$2, demandado=$3, dni_demandado=$4, juzgado=$5, abogado_encargado=$6, detalle=$7, categoria=$8`;
-        const values = [data.cliente, data.dni_cliente, data.caso, data.dni_procurador, data.proceso_administrativo, data.procurador, data.observaciones, data.categoria];
-        let counter = 9;
+        
+        // CORRECCIÓN: Se agrega nro_expediente ($10) a la lista de actualización
+        let sql = `UPDATE expedientes SET tipo_expediente=$1, demandante=$2, dni_demandante=$3, demandado=$4, dni_demandado=$5, juzgado=$6, abogado_encargado=$7, detalle=$8, categoria=$9, nro_expediente=$10`;
+        
+        const values = [
+            data.tipo_expediente, 
+            data.demandante, 
+            data.dni_demandante, 
+            data.demandado, 
+            data.dni_demandado, 
+            data.juzgado, 
+            data.abogado_encargado, 
+            data.detalle, 
+            data.categoria,
+            data.nro_expediente // Nuevo valor para permitir edición del número
+        ];
+        
+        let counter = 11; // El contador ahora empieza en 11
         if (archivoPath) {
             sql += `, archivo_url=$${counter}`;
             values.push(archivoPath);
@@ -109,9 +140,12 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
         } else if (data.eliminar_archivo === 'true') {
             sql += `, archivo_url=NULL`;
         }
-        sql += ` WHERE nro_expediente=$${counter} RETURNING *`;
+        
+        sql += ` WHERE id=$${counter} RETURNING *`;
         values.push(id);
+        
         const updatedExpediente = await pool.query(sql, values);
+        
         if (updatedExpediente.rows.length === 0) {
             return res.status(404).json({ error: "Expediente no encontrado" });
         }
@@ -122,7 +156,7 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
     }
 });
 
-app.use((req, res) => {
+app.use((req, res, next) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 

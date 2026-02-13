@@ -16,8 +16,15 @@ function MenuPrincipal({ onSeleccionar, onLogout, usuario }) {
         <div className="cards-grid">
           <div className="card-menu" onClick={() => onSeleccionar("Expediente Administrativo y Notarial")}>
             <div className="icon-circle"><FaFileContract /></div>
-            <h3>Expediente Administrativo y Notarial</h3>
-            <p>Gestión de trámites administrativos y procesos notariales.</p>
+            <h3>Expediente Administrativo </h3>
+            <p>Gestión de trámites administrativos.</p>
+          </div>
+
+
+          <div className="card-menu" onClick={() => onSeleccionar("Expediente Administrativo y Notarial")}>
+            <div className="icon-circle"><FaFileContract /></div>
+            <h3>Expediente Notarial</h3>
+            <p>Gestión de procesos notariales.</p>
           </div>
 
           <div className="card-menu" onClick={() => onSeleccionar("Expediente Judicial")}>

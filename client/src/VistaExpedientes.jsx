@@ -28,7 +28,6 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
   const cargarExpedientes = async () => {
     try {
       if (!subCategoria) return;
-
       const res = await axios.get('/api/expedientes', {
         params: { busqueda, categoria: subCategoria }
       });
@@ -94,42 +93,44 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
 
         <div className="vista-table-card">
             <table className="vista-table">
-                <thead>
-                    <tr>
-                        <th>NRO. EXP</th>
-                        <th>DEMANDANTE (CLIENTE)</th>
-                        <th>DNI</th>
-                        <th>DEMANDADO / CASO</th>
-                        <th>JUZGADO</th>
-                        <th style={{textAlign: 'center'}}>EXPEDIENTE DIGITAL</th>
-                        <th style={{textAlign: 'right'}}>ACCIONES</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {expedientes.length === 0 ? (
-                        <tr><td colSpan="7" className="v-no-data">No hay expedientes en: <strong>{subCategoria}</strong>.</td></tr>
-                    ) : (
-                        expedientes.map((exp) => (
-                            <tr key={exp.nro_expediente}>
-                                <td style={{fontWeight: 'bold'}}>{exp.nro_expediente}</td>
-                                <td style={{fontWeight: 'bold', color: '#1e1e2d'}}>{exp.demandante}</td>
-                                <td>{exp.dni_demandante}</td>
-                                <td>{exp.demandado}</td>
-                                <td>{exp.juzgado}</td>
-                                <td style={{textAlign: 'center'}}>
-                                    {exp.archivo_url ? (
-                                        <a href={`${window.location.origin}${exp.archivo_url}`} target="_blank" rel="noopener noreferrer" className="btn-ver-pdf">
-                                            <FaFilePdf /> Ver PDF
-                                        </a>
-                                    ) : <span className="no-pdf">Sin archivo</span>}
-                                </td>
-                                <td style={{textAlign: 'right'}}>
-                                    <button onClick={() => handleEditar(exp)} className="v-btn-edit"><FaEdit /></button>
-                                </td>
-                            </tr>
-                        ))
-                    )}
-                </tbody>
+               <thead>
+    <tr>
+        <th>ID</th>
+        <th>NRO. EXP</th>
+        <th>DEMANDANTE (CLIENTE)</th>
+        <th>DNI</th>
+        <th>DEMANDADO / CASO</th>
+        <th>JUZGADO</th>
+        <th>ABOGADO</th>
+        <th style={{textAlign: 'center'}}>EXPEDIENTE DIGITAL</th>
+        <th style={{textAlign: 'right'}}>ACCIONES</th>
+    </tr>
+</thead>
+<tbody>
+    {expedientes.map((exp) => (
+        <tr key={exp.id}>
+            <td>{exp.id}</td>
+            <td style={{fontWeight: 'bold'}}>{exp.nro_expediente}</td>
+            <td style={{fontWeight: 'bold', color: '#1e1e2d'}}>{exp.demandante}</td>
+            <td>{exp.dni_demandante}</td>
+            <td>{exp.demandante}</td>
+            <td>{exp.dni_demandado}</td>
+            <td>{exp.demandado}</td>
+            <td>{exp.juzgado}</td>
+            <td>{exp.abogado_encargado}</td>
+            <td style={{textAlign: 'center'}}>
+                {exp.archivo_url ? (
+                    <a href={`${window.location.origin}${exp.archivo_url}`} target="_blank" rel="noopener noreferrer" className="btn-ver-pdf">
+                        <FaFilePdf /> Ver PDF
+                    </a>
+                ) : <span className="no-pdf">Sin archivo</span>}
+            </td>
+            <td style={{textAlign: 'right'}}>
+                <button onClick={() => handleEditar(exp)} className="v-btn-edit"><FaEdit /></button>
+            </td>
+        </tr>
+    ))}
+</tbody>
             </table>
         </div>
 
@@ -141,6 +142,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, onLogout, onVolver }) {
           onGuardarExitoso={cargarExpedientes}
           expedienteAEditar={expedienteAEditar}
           categoriaPreseleccionada={subCategoria}
+          categoriaPrincipalMenu={categoriaPrincipal}
         />
       )}
     </div>

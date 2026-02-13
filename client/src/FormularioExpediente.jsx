@@ -5,7 +5,7 @@ import { FaTrash, FaFilePdf } from 'react-icons/fa';
 import Swal from 'sweetalert2'; 
 import './estilos/Formulario.css'; 
 
-function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, categoriaPreseleccionada }) {
+function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, categoriaPreseleccionada, categoriaPrincipalMenu }) {
   const { register, handleSubmit, reset, setValue } = useForm();
   
   const [archivoExistente, setArchivoExistente] = useState(null);
@@ -14,6 +14,7 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
   useEffect(() => {
     if (expedienteAEditar) {
       reset({
+        tipo_expediente: expedienteAEditar.tipo_expediente,
         nro_expediente: expedienteAEditar.nro_expediente,
         demandante: expedienteAEditar.demandante,
         dni_demandante: expedienteAEditar.dni_demandante,
@@ -30,11 +31,10 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
         setEliminarArchivo(false);
       }
     } else {
-      if (categoriaPreseleccionada) {
-        setValue('categoria', categoriaPreseleccionada);
-      }
+      if (categoriaPreseleccionada) setValue('categoria', categoriaPreseleccionada);
+      if (categoriaPrincipalMenu) setValue('tipo_expediente', categoriaPrincipalMenu);
     }
-  }, [expedienteAEditar, reset, categoriaPreseleccionada, setValue]);
+  }, [expedienteAEditar, reset, categoriaPreseleccionada, categoriaPrincipalMenu, setValue]);
 
   const handleBorrarArchivo = () => {
     setEliminarArchivo(true);
@@ -51,15 +51,16 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     });
 
     const formData = new FormData();
+    formData.append('tipo_expediente', data.tipo_expediente || '');
     formData.append('nro_expediente', data.nro_expediente || '');
-    formData.append('cliente', data.demandante || '');
-    formData.append('dni_cliente', data.dni_demandante || '');
-    formData.append('caso', data.demandado || '');
-    formData.append('dni_procurador', data.dni_demandado || '');
-    formData.append('proceso_administrativo', data.juzgado || '');
-    formData.append('procurador', data.abogado_encargado || '');
+    formData.append('demandante', data.demandante || '');
+    formData.append('dni_demandante', data.dni_demandante || '');
+    formData.append('demandado', data.demandado || '');
+    formData.append('dni_demandado', data.dni_demandado || '');
+    formData.append('juzgado', data.juzgado || '');
+    formData.append('abogado_encargado', data.abogado_encargado || '');
+    formData.append('detalle', data.detalle || '');
     formData.append('categoria', data.categoria || '');
-    formData.append('observaciones', data.detalle || '');
     formData.append('eliminar_archivo', eliminarArchivo ? 'true' : 'false');
 
     if (data.archivo && data.archivo.length > 0) {
@@ -68,34 +69,25 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
 
     try {
       if (expedienteAEditar) {
-        const id = expedienteAEditar.nro_expediente; 
-        await axios.put(`/api/expedientes/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await axios.put(`/api/expedientes/${expedienteAEditar.id}`, formData, { 
+          headers: { 'Content-Type': 'multipart/form-data' } 
+        });
       } else {
-        await axios.post('/api/expedientes', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await axios.post('/api/expedientes', formData, { 
+          headers: { 'Content-Type': 'multipart/form-data' } 
+        });
       }
       
-      await Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'El expediente se registró correctamente.', confirmButtonColor: '#004e8e' });
+      await Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Operación realizada con éxito.', confirmButtonColor: '#004e8e' });
       onGuardarExitoso();
       onClose();
 
     } catch (error) {
       console.error("Error al guardar:", error);
-
-      let mensajeError = 'Hubo un problema al conectar con el servidor.';
-      let tituloError = 'Error';
-      
-      if (error.response) {
-         // Si es error 500 y estamos creando, asumimos duplicado (Postgres lanza error de llave primaria)
-         if (error.response.status === 500 && !expedienteAEditar) {
-            tituloError = '¡Duplicado!';
-            mensajeError = `El Nro. de Expediente "${data.nro_expediente}" YA EXISTE en el sistema.`;
-         }
-      }
-
       Swal.fire({ 
-        icon: 'warning',
-        title: tituloError, 
-        text: mensajeError, 
+        icon: 'error', 
+        title: 'Error', 
+        text: 'No se pudo guardar. Verifica la consola para más detalles.', 
         confirmButtonColor: '#ffa800' 
       });
     }
@@ -104,36 +96,32 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
   return (
     <div className="modal-backdrop">
       <div className="modal-card">
-        
         <div className="modal-header">
           <h3>{expedienteAEditar ? `Editar: ${expedienteAEditar.nro_expediente}` : `Nuevo: ${categoriaPreseleccionada}`}</h3>
           <button className="btn-close-modal" onClick={onClose}>&times;</button>
         </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="modal-body">
-          
           <div className="form-section">
             <h4 className="section-title">1. Información Principal</h4>
             <div className="row-2">
               <div className="form-control">
-                <label>Nro. Expediente <span className="req">*</span></label>
-                <input {...register("nro_expediente", { required: true })} placeholder="Ej: 123-2024-JLA" disabled={!!expedienteAEditar} />
+                <label>Tipo de Expediente</label>
+                <input {...register("tipo_expediente")} readOnly style={{backgroundColor: '#f8f9fa', color: '#888', cursor: 'not-allowed'}} />
               </div>
-              
               <div className="form-control">
-                <label>Categoría (Automática)</label>
-                <input type="text" {...register("categoria")} readOnly style={{backgroundColor: '#e9ecef', color: '#555', cursor: 'not-allowed', fontWeight: 'bold'}} />
+                <label>Nro. Expediente <span className="req">*</span></label>
+                <input {...register("nro_expediente", { required: true })} placeholder="Ej: 123-2024-JLA" />
               </div>
             </div>
-
             <div className="row-2">
+              <div className="form-control">
+                <label>Categoría (Sub-Categoría)</label>
+                <input type="text" {...register("categoria")} readOnly style={{backgroundColor: '#e9ecef', color: '#555', cursor: 'not-allowed', fontWeight: 'bold'}} />
+              </div>
                <div className="form-control">
                 <label>Juzgado / Fiscalía</label>
                 <input {...register("juzgado")} />
-              </div>
-               <div className="form-control">
-                <label>Abogado Encargado</label>
-                <input {...register("abogado_encargado")} />
               </div>
             </div>
           </div>
@@ -142,7 +130,7 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
             <h4 className="section-title">2. Partes Procesales</h4>
             <div className="row-2">
               <div className="form-control">
-                <label>Demandante (Cliente) <span className="req">*</span></label>
+                <label>Demandante <span className="req">*</span></label>
                 <input {...register("demandante", { required: true })} />
               </div>
               <div className="form-control">
@@ -152,7 +140,7 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
             </div>
             <div className="row-2">
                <div className="form-control">
-                <label>Demandado / Caso <span className="req">*</span></label>
+                <label>Demandado <span className="req">*</span></label>
                 <input {...register("demandado", { required: true })} />
               </div>
                <div className="form-control">
@@ -163,17 +151,21 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
           </div>
 
           <div className="form-section">
-            <h4 className="section-title">3. Archivos y Detalles</h4>
+            <h4 className="section-title">3. Archivos y Otros</h4>
+            <div className="form-control">
+              <label>Abogado Encargado</label>
+              <input {...register("abogado_encargado")} />
+            </div>
             <div className="form-control">
               <label>Detalle</label>
               <textarea className="form-textarea" rows="2" {...register("detalle")}></textarea>
             </div>
             
             <div className="form-control" style={{background: '#f8f9fa', padding: '10px', borderRadius: '5px'}}>
-              <label>Expediente Digital</label>
+              <label>Expediente Digital (PDF)</label>
               {archivoExistente ? (
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                   <a href={archivoExistente} target="_blank" rel="noopener noreferrer" style={{color: '#004e8e', fontWeight: 'bold'}}>Ver Archivo Actual</a>
+                   <a href={`${window.location.origin}${archivoExistente}`} target="_blank" rel="noopener noreferrer" style={{color: '#004e8e', fontWeight: 'bold'}}>Ver Archivo Actual</a>
                    <button type="button" onClick={handleBorrarArchivo} style={{color: 'red', border: 'none', background: 'none', cursor: 'pointer'}}> <FaTrash/> Borrar</button>
                 </div>
               ) : (
@@ -186,7 +178,6 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
             <button type="button" onClick={onClose} className="btn-cancel">Cancelar</button>
             <button type="submit" className="btn-save">Guardar</button>
           </div>
-
         </form>
       </div>
     </div>
