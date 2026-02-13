@@ -1,0 +1,173 @@
+.menu-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-header {
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.menu-header span {
+  color: #38bdf8;
+}
+
+.btn-logout-menu {
+  background: transparent;
+  border: 1px solid #475569;
+  color: #94a3b8;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+}
+
+.btn-logout-menu:hover {
+  border-color: #f87171;
+  color: #f87171;
+}
+
+.menu-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.menu-title {
+  font-size: 2.5rem;
+  margin-bottom: 50px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.card-menu {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.3s, background 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+
+.card-menu:hover {
+  transform: translateY(-5px);
+  background: rgba(30, 41, 59, 1);
+  border-color: #38bdf8;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.icon-circle {
+  font-size: 40px;
+  color: #38bdf8;
+  margin-bottom: 20px;
+}
+
+.card-menu h3 {
+  font-size: 1.25rem;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.card-menu p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .menu-header {
+    padding: 15px 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .menu-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .btn-logout-menu {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .menu-content {
+    padding: 30px 20px;
+    justify-content: flex-start;
+  }
+
+  .menu-title {
+    font-size: 1.5rem;
+    margin-bottom: 30px;
+    margin-top: 10px;
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .card-menu {
+    min-height: auto;
+    padding: 20px 10px;
+    border-radius: 12px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .icon-circle {
+    font-size: 32px;
+    margin-bottom: 10px;
+    margin-right: 0;
+  }
+
+  .card-menu h3 {
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .card-menu p {
+    display: none;
+  }
+  
+  .card-menu:active {
+    background-color: rgba(56, 189, 248, 0.1);
+    border-color: #38bdf8;
+    transform: scale(0.98);
+  }
+}
