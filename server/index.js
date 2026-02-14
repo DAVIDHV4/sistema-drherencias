@@ -85,11 +85,11 @@ app.post('/api/expedientes', upload.single('archivo'), async (req, res) => {
         }
 
         const archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
-        const sql = `INSERT INTO expedientes (tipo_expediente, nro_expediente, solicitante, dni_solicitante, juzgado, abogado_encargado, materia, categoria, archivo_url, estado) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`;
+        const sql = `INSERT INTO expedientes (tipo_expediente, nro_expediente, solicitante, dni_solicitante, juzgado, abogado_encargado, materia, categoria, archivo_url, estado, observaciones) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
         const values = [
             data.tipo_expediente, data.nro_expediente, data.solicitante, 
             data.dni_solicitante, data.juzgado, data.abogado_encargado, 
-            data.materia, data.categoria, archivoPath, data.estado || 'En Trámite'
+            data.materia, data.categoria, archivoPath, data.estado || 'En Trámite', data.observaciones || ''
         ];
         const newExpediente = await pool.query(sql, values);
         res.json(newExpediente.rows[0]);
@@ -109,12 +109,12 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
         }
 
         let archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
-        let sql = `UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8, estado=$9`;
+        let sql = `UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8, estado=$9, observaciones=$10`;
         const values = [
             data.tipo_expediente, data.solicitante, data.dni_solicitante, 
-            data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.nro_expediente, data.estado
+            data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.nro_expediente, data.estado, data.observaciones
         ];
-        let counter = 10;
+        let counter = 11;
         if (archivoPath) {
             sql += `, archivo_url=$${counter}`;
             values.push(archivoPath);

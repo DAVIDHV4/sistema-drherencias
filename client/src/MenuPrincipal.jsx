@@ -48,7 +48,8 @@ function MenuPrincipal({ onSeleccionar, onLogout, usuario }) {
               <thead>
                 <tr style={{backgroundColor: '#f8f9fa'}}>
                   <th style={{padding: '12px', color: '#000', borderBottom: '2px solid #eee'}}>NRO. EXP</th>
-                  <th style={{padding: '12px', color: '#000', borderBottom: '2px solid #eee'}}>DEMANDANTE</th>
+                  {/* CORRECCIÓN DE ENCABEZADO */}
+                  <th style={{padding: '12px', color: '#000', borderBottom: '2px solid #eee'}}>DEMANDANTE / SOLICITANTE</th>
                   <th style={{padding: '12px', color: '#000', borderBottom: '2px solid #eee'}}>TIPO</th>
                   <th style={{padding: '12px', color: '#000', borderBottom: '2px solid #eee'}}>ACCION</th>
                 </tr>
@@ -57,7 +58,8 @@ function MenuPrincipal({ onSeleccionar, onLogout, usuario }) {
                 {resultados.map(exp => (
                   <tr key={exp.id} style={{borderBottom: '1px solid #eee'}}>
                     <td style={{padding: '12px', color: '#000', fontWeight: 'bold'}}>{exp.nro_expediente}</td>
-                    <td style={{padding: '12px', color: '#000'}}>{exp.demandante}</td>
+                    {/* CORRECCIÓN: Ahora lee 'solicitante' en lugar de 'demandante' */}
+                    <td style={{padding: '12px', color: '#000'}}>{exp.solicitante}</td>
                     <td style={{padding: '12px', color: '#333', fontSize: '13px'}}>{exp.tipo_expediente}</td>
                     <td style={{padding: '12px', textAlign: 'center'}}>
                       <button 
