@@ -27,6 +27,7 @@ const storage = multer.diskStorage({
         cb(null, nombreOriginal);
     }
 });
+
 const upload = multer({ storage: storage });
 app.use('/uploads', express.static(uploadDir));
 
@@ -76,7 +77,7 @@ app.get('/api/expedientes', async (req, res) => {
     }
 });
 
-app.post('/api/expedientes', upload.single('archivo'), async (req, res) => {
+app.post('/api/expedientes', upload.array('archivos', 10), async (req, res) => {
     try {
         const data = req.body;
         const existe = await pool.query('SELECT id FROM expedientes WHERE nro_expediente = $1', [data.nro_expediente]);
@@ -84,12 +85,20 @@ app.post('/api/expedientes', upload.single('archivo'), async (req, res) => {
             return res.status(400).json({ error: "El número de expediente ya existe en el sistema." });
         }
 
-        const archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
+        let listaArchivos = [];
+        if (req.files && req.files.length > 0) {
+            listaArchivos = req.files.map(f => ({
+                nombre: f.originalname,
+                url: `/uploads/${f.filename}`
+            }));
+        }
+        const archivosJSON = JSON.stringify(listaArchivos);
+
         const sql = `INSERT INTO expedientes (tipo_expediente, nro_expediente, solicitante, dni_solicitante, juzgado, abogado_encargado, materia, categoria, archivo_url, estado, observaciones) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
         const values = [
             data.tipo_expediente, data.nro_expediente, data.solicitante, 
             data.dni_solicitante, data.juzgado, data.abogado_encargado, 
-            data.materia, data.categoria, archivoPath, data.estado || 'En Trámite', data.observaciones || ''
+            data.materia, data.categoria, archivosJSON, data.estado || 'En Trámite', data.observaciones || ''
         ];
         const newExpediente = await pool.query(sql, values);
         res.json(newExpediente.rows[0]);
@@ -99,7 +108,7 @@ app.post('/api/expedientes', upload.single('archivo'), async (req, res) => {
     }
 });
 
-app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
+app.put('/api/expedientes/:id', upload.array('archivos', 10), async (req, res) => {
     try {
         const { id } = req.params;
         const data = req.body;
@@ -108,22 +117,36 @@ app.put('/api/expedientes/:id', upload.single('archivo'), async (req, res) => {
             return res.status(400).json({ error: "No puedes usar ese número de expediente, ya está asignado a otro registro." });
         }
 
-        let archivoPath = req.file ? `/uploads/${req.file.filename}` : null;
-        let sql = `UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8, estado=$9, observaciones=$10`;
+        let archivosFinales = [];
+        if (data.archivos_previos) {
+            try {
+                archivosFinales = JSON.parse(data.archivos_previos);
+            } catch (e) {
+                if (typeof data.archivos_previos === 'string' && data.archivos_previos.startsWith('/uploads')) {
+                    archivosFinales = [{ nombre: 'Archivo Anterior', url: data.archivos_previos }];
+                }
+            }
+        }
+
+        if (req.files && req.files.length > 0) {
+            const nuevos = req.files.map(f => ({
+                nombre: f.originalname,
+                url: `/uploads/${f.filename}`
+            }));
+            archivosFinales = [...archivosFinales, ...nuevos];
+        }
+
+        const archivosJSON = JSON.stringify(archivosFinales);
+
+        const sql = `UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8, estado=$9, observaciones=$10, archivo_url=$11 WHERE id=$12 RETURNING *`;
+        
         const values = [
             data.tipo_expediente, data.solicitante, data.dni_solicitante, 
-            data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.nro_expediente, data.estado, data.observaciones
+            data.juzgado, data.abogado_encargado, data.materia, 
+            data.categoria, data.nro_expediente, data.estado, 
+            data.observaciones, archivosJSON, id
         ];
-        let counter = 11;
-        if (archivoPath) {
-            sql += `, archivo_url=$${counter}`;
-            values.push(archivoPath);
-            counter++;
-        } else if (data.eliminar_archivo === 'true') {
-            sql += `, archivo_url=NULL`;
-        }
-        sql += ` WHERE id=$${counter} RETURNING *`;
-        values.push(id);
+
         const result = await pool.query(sql, values);
         res.json(result.rows[0]);
     } catch (err) {

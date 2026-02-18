@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FaFilePdf, FaPlus, FaSignOutAlt, FaEdit, FaSearch, FaHome, FaCommentAlt } from 'react-icons/fa';
+import { FaPlus, FaSignOutAlt, FaEdit, FaSearch, FaHome, FaCommentAlt, FaPaperclip } from 'react-icons/fa';
 import FormularioExpediente from './FormularioExpediente';
 import Swal from 'sweetalert2';
 import './estilos/VistaExpedientes.css'; 
@@ -56,9 +56,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
       inputValue: exp.observaciones || '',
       inputPlaceholder: 'Escriba aquí las observaciones...',
       inputAttributes: {
-        'maxlength': 500,
-        'autocapitalize': 'off',
-        'autocorrect': 'off'
+        'maxlength': 500
       },
       showCancelButton: true,
       confirmButtonText: 'Guardar',
@@ -68,16 +66,93 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
 
     if (text !== undefined) {
       try {
-        await axios.put(`/api/expedientes/${exp.id}`, { 
-          ...exp,
-          observaciones: text 
-        });
+        await axios.put(`/api/expedientes/${exp.id}`, { ...exp, observaciones: text });
         Swal.fire('¡Guardado!', 'La observación ha sido actualizada.', 'success');
         cargarExpedientes();
       } catch (error) {
         Swal.fire('Error', 'No se pudo actualizar la observación.', 'error');
       }
     }
+  };
+
+  const subirArchivoRapido = async (file, exp) => {
+      if (!file) return;
+      
+      const formData = new FormData();
+      formData.append('tipo_expediente', exp.tipo_expediente || '');
+      formData.append('nro_expediente', exp.nro_expediente || '');
+      formData.append('solicitante', exp.solicitante || '');
+      formData.append('dni_solicitante', exp.dni_solicitante || '');
+      formData.append('juzgado', exp.juzgado || '');
+      formData.append('abogado_encargado', exp.abogado_encargado || '');
+      formData.append('materia', exp.materia || '');
+      formData.append('categoria', exp.categoria || '');
+      formData.append('estado', exp.estado || 'Inscrito');
+      formData.append('observaciones', exp.observaciones || '');
+      
+      formData.append('archivos_previos', exp.archivo_url || '[]');
+      formData.append('archivos', file);
+
+      try {
+          Swal.fire({ title: 'Subiendo...', didOpen: () => Swal.showLoading() });
+          const res = await axios.put(`/api/expedientes/${exp.id}`, formData);
+          await cargarExpedientes(); 
+          Swal.close();
+          // Volver a abrir la ventana de archivos con los datos actualizados
+          const expedienteActualizado = { ...exp, archivo_url: res.data.archivo_url };
+          handleVerArchivos(expedienteActualizado);
+      } catch (error) {
+          Swal.fire('Error', 'No se pudo subir el archivo', 'error');
+      }
+  };
+
+  const handleVerArchivos = (exp) => {
+      let archivos = [];
+      try {
+          archivos = JSON.parse(exp.archivo_url);
+          if (!Array.isArray(archivos)) throw new Error();
+      } catch (e) {
+          if (exp.archivo_url) archivos = [{nombre: 'Archivo Principal', url: exp.archivo_url}];
+      }
+
+      const listaHtml = archivos.length > 0 
+        ? archivos.map(a => 
+            `<div style="margin-bottom: 10px; text-align: left; padding: 8px; border: 1px solid #eee; border-radius: 6px; display: flex; align-items: center; background-color: #f9f9f9;">
+                <span style="font-size: 20px; margin-right: 10px;">📄</span>
+                <a href="${window.location.origin}${a.url}" target="_blank" style="color: #004e8e; text-decoration: none; font-weight: bold; flex-grow: 1; word-break: break-all;">
+                   ${a.nombre}
+                </a>
+             </div>`
+          ).join('')
+        : '<p style="color:#888;">No hay archivos adjuntos.</p>';
+
+      Swal.fire({
+          title: 'Documentos del Expediente',
+          html: `
+            <div style="max-height: 300px; overflow-y: auto; text-align: left; margin-bottom: 15px;">${listaHtml}</div>
+            <hr style="border-top: 1px solid #eee; margin: 10px 0;">
+            <button id="btn-add-file-swal" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; width: 100%;">
+                <span style="margin-right: 8px;">+</span> Agregar otro archivo
+            </button>
+          `,
+          showConfirmButton: true,
+          confirmButtonText: 'Cerrar',
+          confirmButtonColor: '#555',
+          didOpen: () => {
+              const btn = Swal.getPopup().querySelector('#btn-add-file-swal');
+              btn.addEventListener('click', () => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.pdf, .doc, .docx, .xls, .xlsx';
+                  input.onchange = (e) => {
+                      if (e.target.files && e.target.files[0]) {
+                          subirArchivoRapido(e.target.files[0], exp);
+                      }
+                  };
+                  input.click();
+              });
+          }
+      });
   };
 
   return (
@@ -136,13 +211,14 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
                                 ? "DEMANDANTE" 
                                 : "SOLICITANTE"}
                         </th>
-                        <th>{(categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Judicial") 
+                        <th>
+                            {(categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Judicial") 
                                 ? "DNI DEMANDANTE" 
                                 : "DNI SOLICITANTE"}
-                                </th>
-                        <th>ABOGADO ENCARGADO</th>
+                        </th>
+                        <th>ABOGADO_ENCARGADO</th>
                         <th>JUZGADO</th>
-                        <th style={{textAlign: 'center'}}>ARCHIVO</th>
+                        <th style={{textAlign: 'center'}}>ARCHIVOS</th>
                         <th style={{textAlign: 'center'}}>OBS.</th>
                         <th style={{textAlign: 'right'}}>ACCIONES</th>
                     </tr>
@@ -165,13 +241,9 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
                                 <td>{exp.abogado_encargado}</td>
                                 <td>{exp.juzgado}</td>
                                 <td style={{textAlign: 'center'}}>
-                                    {exp.archivo_url ? (
-                                        <a href={`${window.location.origin}${exp.archivo_url}`} target="_blank" rel="noopener noreferrer" className="btn-ver-pdf">
-                                            {exp.archivo_url.endsWith('.pdf') ? '📄 PDF' : 
-                                             exp.archivo_url.match(/\.(doc|docx)$/) ? '📝 Word' : 
-                                             exp.archivo_url.match(/\.(xls|xlsx)$/) ? '📊 Excel' : '📎 Ver'}
-                                        </a>
-                                    ) : <span className="no-pdf">-</span>}
+                                    <button onClick={() => handleVerArchivos(exp)} className="btn-ver-pdf" style={{border:'none', cursor:'pointer', background: '#e9ecef', color:'#333', padding:'5px 10px', borderRadius:'4px', fontWeight:'bold', display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                        <FaPaperclip /> Ver
+                                    </button>
                                 </td>
                                 <td style={{textAlign: 'center'}}>
                                     <button onClick={() => handleObservaciones(exp)} className="v-btn-obs" style={{background: 'none', border: 'none', cursor: 'pointer', color: exp.observaciones ? '#3699ff' : '#ccc'}}>
