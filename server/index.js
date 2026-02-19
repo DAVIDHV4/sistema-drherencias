@@ -23,8 +23,9 @@ const storage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        const nombreOriginal = file.originalname.replace(/\s+/g, '_');
-        cb(null, nombreOriginal);
+        let nombreCorregido = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        nombreCorregido = nombreCorregido.replace(/\s+/g, '_');
+        cb(null, nombreCorregido);
     }
 });
 
@@ -88,7 +89,7 @@ app.post('/api/expedientes', upload.array('archivos', 10), async (req, res) => {
         let listaArchivos = [];
         if (req.files && req.files.length > 0) {
             listaArchivos = req.files.map(f => ({
-                nombre: f.originalname,
+                nombre: Buffer.from(f.originalname, 'latin1').toString('utf8'),
                 url: `/uploads/${f.filename}`
             }));
         }
@@ -123,14 +124,15 @@ app.put('/api/expedientes/:id', upload.array('archivos', 10), async (req, res) =
                 archivosFinales = JSON.parse(data.archivos_previos);
             } catch (e) {
                 if (typeof data.archivos_previos === 'string' && data.archivos_previos.startsWith('/uploads')) {
-                    archivosFinales = [{ nombre: 'Archivo Anterior', url: data.archivos_previos }];
+                    const nombreReal = data.archivos_previos.split('/').pop();
+                    archivosFinales = [{ nombre: nombreReal, url: data.archivos_previos }];
                 }
             }
         }
 
         if (req.files && req.files.length > 0) {
             const nuevos = req.files.map(f => ({
-                nombre: f.originalname,
+                nombre: Buffer.from(f.originalname, 'latin1').toString('utf8'),
                 url: `/uploads/${f.filename}`
             }));
             archivosFinales = [...archivosFinales, ...nuevos];

@@ -98,7 +98,6 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
           const res = await axios.put(`/api/expedientes/${exp.id}`, formData);
           await cargarExpedientes(); 
           Swal.close();
-          // Volver a abrir la ventana de archivos con los datos actualizados
           const expedienteActualizado = { ...exp, archivo_url: res.data.archivo_url };
           handleVerArchivos(expedienteActualizado);
       } catch (error) {
@@ -109,17 +108,26 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
   const handleVerArchivos = (exp) => {
       let archivos = [];
       try {
-          archivos = JSON.parse(exp.archivo_url);
-          if (!Array.isArray(archivos)) throw new Error();
+          let parsed = JSON.parse(exp.archivo_url);
+          if (!Array.isArray(parsed)) throw new Error();
+          archivos = parsed.map(a => {
+              if (a.nombre && (a.nombre.includes('Archivo ') || a.nombre.includes('Adjunto'))) {
+                  a.nombre = a.url.split('/').pop();
+              }
+              return a;
+          });
       } catch (e) {
-          if (exp.archivo_url) archivos = [{nombre: 'Archivo Principal', url: exp.archivo_url}];
+          if (exp.archivo_url) {
+              const nombreExtraido = exp.archivo_url.split('/').pop();
+              archivos = [{nombre: nombreExtraido, url: exp.archivo_url}];
+          }
       }
 
       const listaHtml = archivos.length > 0 
         ? archivos.map(a => 
             `<div style="margin-bottom: 10px; text-align: left; padding: 8px; border: 1px solid #eee; border-radius: 6px; display: flex; align-items: center; background-color: #f9f9f9;">
                 <span style="font-size: 20px; margin-right: 10px;">📄</span>
-                <a href="${window.location.origin}${a.url}" target="_blank" style="color: #004e8e; text-decoration: none; font-weight: bold; flex-grow: 1; word-break: break-all;">
+                <a href="${window.location.origin}${encodeURI(a.url)}" target="_blank" style="color: #004e8e; text-decoration: none; font-weight: bold; flex-grow: 1; word-break: break-all;">
                    ${a.nombre}
                 </a>
              </div>`
@@ -143,7 +151,6 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
               btn.addEventListener('click', () => {
                   const input = document.createElement('input');
                   input.type = 'file';
-                  input.accept = '.pdf, .doc, .docx, .xls, .xlsx';
                   input.onchange = (e) => {
                       if (e.target.files && e.target.files[0]) {
                           subirArchivoRapido(e.target.files[0], exp);
@@ -241,9 +248,11 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
                                 <td>{exp.abogado_encargado}</td>
                                 <td>{exp.juzgado}</td>
                                 <td style={{textAlign: 'center'}}>
-                                    <button onClick={() => handleVerArchivos(exp)} className="btn-ver-pdf" style={{border:'none', cursor:'pointer', background: '#e9ecef', color:'#333', padding:'5px 10px', borderRadius:'4px', fontWeight:'bold', display: 'flex', alignItems: 'center', gap: '5px'}}>
-                                        <FaPaperclip /> Ver
-                                    </button>
+                                    {exp.archivo_url ? (
+                                        <button onClick={() => handleVerArchivos(exp)} className="btn-ver-pdf" style={{border:'none', cursor:'pointer', background: '#e9ecef', color:'#333', padding:'5px 10px', borderRadius:'4px', fontWeight:'bold', display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                            <FaPaperclip /> Ver
+                                        </button>
+                                    ) : <span className="no-pdf">-</span>}
                                 </td>
                                 <td style={{textAlign: 'center'}}>
                                     <button onClick={() => handleObservaciones(exp)} className="v-btn-obs" style={{background: 'none', border: 'none', cursor: 'pointer', color: exp.observaciones ? '#3699ff' : '#ccc'}}>

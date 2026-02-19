@@ -26,14 +26,18 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
 
       if (expedienteAEditar.archivo_url) {
         try {
-            const parsed = JSON.parse(expedienteAEditar.archivo_url);
-            if (Array.isArray(parsed)) {
-                setArchivosExistentes(parsed);
-            } else {
-                setArchivosExistentes([{ nombre: 'Archivo Original', url: expedienteAEditar.archivo_url }]);
-            }
+            let parsed = JSON.parse(expedienteAEditar.archivo_url);
+            if (!Array.isArray(parsed)) throw new Error();
+            parsed = parsed.map(a => {
+                if (a.nombre && (a.nombre.includes('Archivo ') || a.nombre.includes('Adjunto'))) {
+                    a.nombre = a.url.split('/').pop();
+                }
+                return a;
+            });
+            setArchivosExistentes(parsed);
         } catch (e) {
-            setArchivosExistentes([{ nombre: 'Archivo Adjunto', url: expedienteAEditar.archivo_url }]);
+            const nombreExtraido = expedienteAEditar.archivo_url.split('/').pop();
+            setArchivosExistentes([{ nombre: nombreExtraido, url: expedienteAEditar.archivo_url }]);
         }
       } else {
         setArchivosExistentes([]);
@@ -128,7 +132,6 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
             <h4 className="section-title">3. Otros Detalles</h4>
             <div className="form-control"><label>Abogado Encargado</label><input {...register("abogado_encargado")} /></div>
             
-            {/* CORRECCIÓN DE ESTILO PARA EL TEXTAREA DE MATERIA */}
             <div className="form-control">
               <label>Materia</label>
               <textarea 
@@ -197,8 +200,8 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
                         }}>
                             <div style={{display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden'}}>
                                 <FaFileAlt color="#3699ff"/>
-                                <a href={`${window.location.origin}${archivo.url}`} target="_blank" rel="noopener noreferrer" style={{fontSize: '13px', color: '#e0e0e0', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                                    {archivo.nombre || 'Archivo Adjunto'}
+                                <a href={`${window.location.origin}${encodeURI(archivo.url)}`} target="_blank" rel="noopener noreferrer" style={{fontSize: '13px', color: '#e0e0e0', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+                                    {archivo.nombre}
                                 </a>
                             </div>
                             <button type="button" onClick={() => borrarArchivoExistente(index)} style={{color: '#ff5b5b', border: 'none', background: 'none', cursor: 'pointer', padding: '4px'}}>
