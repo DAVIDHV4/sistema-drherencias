@@ -2,40 +2,44 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FaPlus, FaSignOutAlt, FaEdit, FaSearch, FaHome, FaCommentAlt, FaPaperclip } from 'react-icons/fa';
 import FormularioExpediente from './FormularioExpediente';
+import ModalArchivos from './ModalArchivos';
 import Swal from 'sweetalert2';
 import './estilos/VistaExpedientes.css'; 
 
 function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout, onVolver }) {
   
+  const getCategoriaInicial = (principal) => {
+    if (principal === "Expediente Administrativo" || principal === "Expediente Notarial") return "Compraventa";
+    if (principal === "Expediente Judicial") return "Judicial";
+    if (principal === "Expediente por encargo") return "Por Encargo";
+    if (principal === "Expedientes archivados") return "Archivado";
+    return "";
+  };
+
   const [expedientes, setExpedientes] = useState([]);
   const [busqueda, setBusqueda] = useState(filtroInicial || "");
-  const [subCategoria, setSubCategoria] = useState(""); 
+  const [subCategoria, setSubCategoria] = useState(getCategoriaInicial(categoriaPrincipal)); 
   
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [expedienteAEditar, setExpedienteAEditar] = useState(null);
+  const [expedienteArchivos, setExpedienteArchivos] = useState(null); 
+
+  const [pagina, setPagina] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
 
   useEffect(() => {
-    if (categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Notarial") {
-        setSubCategoria("Compraventa");
-    } else if (categoriaPrincipal === "Expediente Judicial") {
-        setSubCategoria("Judicial");
-    } else if (categoriaPrincipal === "Expediente por encargo") {
-        setSubCategoria("Por Encargo");
-    } else if (categoriaPrincipal === "Expedientes archivados") {
-        setSubCategoria("Archivado");
-    }
+    setSubCategoria(getCategoriaInicial(categoriaPrincipal));
   }, [categoriaPrincipal]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [subCategoria, busqueda]);
 
   const cargarExpedientes = async () => {
     try {
-      const res = await axios.get('/api/expedientes', {
-        params: { 
-          busqueda, 
-          categoria: subCategoria,
-          tipo_expediente: categoriaPrincipal 
-        }
-      });
-      setExpedientes(res.data);
+      const res = await axios.get('/api/expedientes', { params: { busqueda, categoria: subCategoria, tipo_expediente: categoriaPrincipal, page: pagina } });
+      setExpedientes(res.data.data || []);
+      setTotalPaginas(res.data.totalPaginas || 1);
     } catch (error) {
       console.error(error);
     }
@@ -43,7 +47,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
 
   useEffect(() => {
     cargarExpedientes();
-  }, [subCategoria, busqueda]);
+  }, [subCategoria, busqueda, pagina]);
 
   const handleNuevo = () => { setExpedienteAEditar(null); setMostrarFormulario(true); };
   const handleEditar = (expediente) => { setExpedienteAEditar(expediente); setMostrarFormulario(true); };
@@ -55,9 +59,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
       inputLabel: `Expediente: ${exp.nro_expediente}`,
       inputValue: exp.observaciones || '',
       inputPlaceholder: 'Escriba aquí las observaciones...',
-      inputAttributes: {
-        'maxlength': 500
-      },
+      inputAttributes: { maxlength: 500 },
       showCancelButton: true,
       confirmButtonText: 'Guardar',
       cancelButtonText: 'Cancelar',
@@ -75,91 +77,8 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
     }
   };
 
-  const subirArchivoRapido = async (file, exp) => {
-      if (!file) return;
-      
-      const formData = new FormData();
-      formData.append('tipo_expediente', exp.tipo_expediente || '');
-      formData.append('nro_expediente', exp.nro_expediente || '');
-      formData.append('solicitante', exp.solicitante || '');
-      formData.append('dni_solicitante', exp.dni_solicitante || '');
-      formData.append('juzgado', exp.juzgado || '');
-      formData.append('abogado_encargado', exp.abogado_encargado || '');
-      formData.append('materia', exp.materia || '');
-      formData.append('categoria', exp.categoria || '');
-      formData.append('estado', exp.estado || 'Inscrito');
-      formData.append('observaciones', exp.observaciones || '');
-      
-      formData.append('archivos_previos', exp.archivo_url || '[]');
-      formData.append('archivos', file);
-
-      try {
-          Swal.fire({ title: 'Subiendo...', didOpen: () => Swal.showLoading() });
-          const res = await axios.put(`/api/expedientes/${exp.id}`, formData);
-          await cargarExpedientes(); 
-          Swal.close();
-          const expedienteActualizado = { ...exp, archivo_url: res.data.archivo_url };
-          handleVerArchivos(expedienteActualizado);
-      } catch (error) {
-          Swal.fire('Error', 'No se pudo subir el archivo', 'error');
-      }
-  };
-
   const handleVerArchivos = (exp) => {
-      let archivos = [];
-      try {
-          let parsed = JSON.parse(exp.archivo_url);
-          if (!Array.isArray(parsed)) throw new Error();
-          archivos = parsed.map(a => {
-              if (a.nombre && (a.nombre.includes('Archivo ') || a.nombre.includes('Adjunto'))) {
-                  a.nombre = a.url.split('/').pop();
-              }
-              return a;
-          });
-      } catch (e) {
-          if (exp.archivo_url) {
-              const nombreExtraido = exp.archivo_url.split('/').pop();
-              archivos = [{nombre: nombreExtraido, url: exp.archivo_url}];
-          }
-      }
-
-      const listaHtml = archivos.length > 0 
-        ? archivos.map(a => 
-            `<div style="margin-bottom: 10px; text-align: left; padding: 8px; border: 1px solid #eee; border-radius: 6px; display: flex; align-items: center; background-color: #f9f9f9;">
-                <span style="font-size: 20px; margin-right: 10px;">📄</span>
-                <a href="${window.location.origin}${encodeURI(a.url)}" target="_blank" style="color: #004e8e; text-decoration: none; font-weight: bold; flex-grow: 1; word-break: break-all;">
-                   ${a.nombre}
-                </a>
-             </div>`
-          ).join('')
-        : '<p style="color:#888;">No hay archivos adjuntos.</p>';
-
-      Swal.fire({
-          title: 'Documentos del Expediente',
-          html: `
-            <div style="max-height: 300px; overflow-y: auto; text-align: left; margin-bottom: 15px;">${listaHtml}</div>
-            <hr style="border-top: 1px solid #eee; margin: 10px 0;">
-            <button id="btn-add-file-swal" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; width: 100%;">
-                <span style="margin-right: 8px;">+</span> Agregar otro archivo
-            </button>
-          `,
-          showConfirmButton: true,
-          confirmButtonText: 'Cerrar',
-          confirmButtonColor: '#555',
-          didOpen: () => {
-              const btn = Swal.getPopup().querySelector('#btn-add-file-swal');
-              btn.addEventListener('click', () => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.onchange = (e) => {
-                      if (e.target.files && e.target.files[0]) {
-                          subirArchivoRapido(e.target.files[0], exp);
-                      }
-                  };
-                  input.click();
-              });
-          }
-      });
+      setExpedienteArchivos(exp);
   };
 
   return (
@@ -182,16 +101,9 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
             <div className="vista-actions">
                 <div className="vista-search">
                     <FaSearch className="icon-search"/>
-                    <input 
-                        type="text" 
-                        placeholder="Buscar..." 
-                        value={busqueda} 
-                        onChange={(e) => setBusqueda(e.target.value)}
-                    />
+                    <input type="text" placeholder="Buscar..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
                 </div>
-                <button className="vista-btn-nuevo" onClick={handleNuevo}>
-                    <FaPlus /> Nuevo
-                </button>
+                <button className="vista-btn-nuevo" onClick={handleNuevo}><FaPlus /> Nuevo</button>
             </div>
         </div>
 
@@ -213,16 +125,8 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
                         <th>ID</th>
                         <th>NRO DE EXPEDIENTE</th>
                         <th>ESTADO</th>
-                        <th>
-                            {(categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Judicial") 
-                                ? "DEMANDANTE" 
-                                : "SOLICITANTE"}
-                        </th>
-                        <th>
-                            {(categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Judicial") 
-                                ? "DNI DEMANDANTE" 
-                                : "DNI SOLICITANTE"}
-                        </th>
+                        <th>{(categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Judicial") ? "DEMANDANTE" : "SOLICITANTE"}</th>
+                        <th>{(categoriaPrincipal === "Expediente Administrativo" || categoriaPrincipal === "Expediente Judicial") ? "DNI DEMANDANTE" : "DNI SOLICITANTE"}</th>
                         <th>ABOGADO_ENCARGADO</th>
                         <th>JUZGADO</th>
                         <th style={{textAlign: 'center'}}>ARCHIVOS</th>
@@ -238,21 +142,15 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
                             <tr key={exp.id}>
                                 <td>{exp.id}</td>
                                 <td style={{fontWeight: 'bold'}}>{exp.nro_expediente}</td>
-                                <td>
-                                    <span className={`badge-estado ${exp.estado?.toLowerCase().replace(/\s+/g, '-')}`}>
-                                        {exp.estado || 'En Trámite'}
-                                    </span>
-                                </td>
+                                <td><span className={`badge-estado ${exp.estado?.toLowerCase().replace(/\s+/g, '-')}`}>{exp.estado || 'En Trámite'}</span></td>
                                 <td>{exp.solicitante}</td>
                                 <td>{exp.dni_solicitante}</td>
                                 <td>{exp.abogado_encargado}</td>
                                 <td>{exp.juzgado}</td>
                                 <td style={{textAlign: 'center'}}>
-                                    {exp.archivo_url ? (
-                                        <button onClick={() => handleVerArchivos(exp)} className="btn-ver-pdf" style={{border:'none', cursor:'pointer', background: '#e9ecef', color:'#333', padding:'5px 10px', borderRadius:'4px', fontWeight:'bold', display: 'flex', alignItems: 'center', gap: '5px'}}>
-                                            <FaPaperclip /> Ver
-                                        </button>
-                                    ) : <span className="no-pdf">-</span>}
+                                    <button onClick={() => handleVerArchivos(exp)} className="btn-ver-pdf" style={{border:'none', cursor:'pointer', background: '#e9ecef', color:'#333', padding:'5px 10px', borderRadius:'4px', fontWeight:'bold', display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                        <FaPaperclip /> Ver
+                                    </button>
                                 </td>
                                 <td style={{textAlign: 'center'}}>
                                     <button onClick={() => handleObservaciones(exp)} className="v-btn-obs" style={{background: 'none', border: 'none', cursor: 'pointer', color: exp.observaciones ? '#3699ff' : '#ccc'}}>
@@ -268,6 +166,13 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
                 </tbody>
             </table>
         </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
+            <button disabled={pagina === 1} onClick={() => setPagina(pagina - 1)} style={{ padding: '8px 15px', borderRadius: '5px', border: 'none', background: pagina === 1 ? '#ccc' : '#3699ff', color: pagina === 1 ? '#333' : '#fff', cursor: pagina === 1 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>Anterior</button>
+            <span style={{ fontWeight: 'bold', color: '#e0e0e0' }}>Página {pagina} de {totalPaginas}</span>
+            <button disabled={pagina === totalPaginas || totalPaginas === 0} onClick={() => setPagina(pagina + 1)} style={{ padding: '8px 15px', borderRadius: '5px', border: 'none', background: pagina === totalPaginas || totalPaginas === 0 ? '#ccc' : '#3699ff', color: pagina === totalPaginas || totalPaginas === 0 ? '#333' : '#fff', cursor: pagina === totalPaginas || totalPaginas === 0 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>Siguiente</button>
+        </div>
+
       </div>
 
       {mostrarFormulario && (
@@ -277,6 +182,14 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
           expedienteAEditar={expedienteAEditar}
           categoriaPreseleccionada={subCategoria}
           categoriaPrincipalMenu={categoriaPrincipal}
+        />
+      )}
+
+      {expedienteArchivos && (
+        <ModalArchivos 
+          expediente={expedienteArchivos} 
+          onClose={() => setExpedienteArchivos(null)} 
+          onGuardarExitoso={() => { setExpedienteArchivos(null); cargarExpedientes(); }}
         />
       )}
     </div>

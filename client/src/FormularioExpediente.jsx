@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
-import { FaTrash, FaCloudUploadAlt, FaFileAlt } from 'react-icons/fa';
+import { FaTrash, FaCloudUploadAlt, FaFileAlt, FaEdit, FaLock } from 'react-icons/fa';
 import Swal from 'sweetalert2'; 
 import './estilos/Formulario.css'; 
 
 function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, categoriaPreseleccionada, categoriaPrincipalMenu }) {
   const { register, handleSubmit, reset, setValue } = useForm();
-  const [archivosExistentes, setArchivosExistentes] = useState([]);
+  const [editablesExistentes, setEditablesExistentes] = useState([]);
+  const [finalesExistentes, setFinalesExistentes] = useState([]);
 
   useEffect(() => {
     if (expedienteAEditar) {
@@ -24,41 +25,37 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
         observaciones: expedienteAEditar.observaciones
       });
 
-      if (expedienteAEditar.archivo_url) {
-        try {
-            let parsed = JSON.parse(expedienteAEditar.archivo_url);
-            if (!Array.isArray(parsed)) throw new Error();
-            parsed = parsed.map(a => {
-                if (a.nombre && (a.nombre.includes('Archivo ') || a.nombre.includes('Adjunto'))) {
-                    a.nombre = a.url.split('/').pop();
-                }
-                return a;
-            });
-            setArchivosExistentes(parsed);
-        } catch (e) {
-            const nombreExtraido = expedienteAEditar.archivo_url.split('/').pop();
-            setArchivosExistentes([{ nombre: nombreExtraido, url: expedienteAEditar.archivo_url }]);
-        }
-      } else {
-        setArchivosExistentes([]);
-      }
+      if (expedienteAEditar.archivos_editables) {
+          try { setEditablesExistentes(JSON.parse(expedienteAEditar.archivos_editables)); } catch(e) { setEditablesExistentes([]); }
+      } else { setEditablesExistentes([]); }
+
+      if (expedienteAEditar.archivos_finales) {
+          try { setFinalesExistentes(JSON.parse(expedienteAEditar.archivos_finales)); } catch(e) { setFinalesExistentes([]); }
+      } else { setFinalesExistentes([]); }
 
     } else {
       if (categoriaPreseleccionada) setValue('categoria', categoriaPreseleccionada);
       if (categoriaPrincipalMenu) setValue('tipo_expediente', categoriaPrincipalMenu);
       setValue('estado', 'Inscrito');
-      setArchivosExistentes([]);
+      setEditablesExistentes([]);
+      setFinalesExistentes([]);
     }
   }, [expedienteAEditar, reset, categoriaPreseleccionada, categoriaPrincipalMenu, setValue]);
 
-  const borrarArchivoExistente = (index) => {
-      const nuevos = [...archivosExistentes];
+  const borrarEditable = (index) => {
+      const nuevos = [...editablesExistentes];
       nuevos.splice(index, 1);
-      setArchivosExistentes(nuevos);
+      setEditablesExistentes(nuevos);
+  };
+
+  const borrarFinal = (index) => {
+      const nuevos = [...finalesExistentes];
+      nuevos.splice(index, 1);
+      setFinalesExistentes(nuevos);
   };
 
   const onSubmit = async (data) => {
-    Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+    Swal.fire({ title: 'Procesando en Drive...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
     
     const formData = new FormData();
     formData.append('tipo_expediente', data.tipo_expediente || '');
@@ -72,11 +69,18 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     formData.append('estado', data.estado || 'Inscrito');
     formData.append('observaciones', data.observaciones || '');
 
-    formData.append('archivos_previos', JSON.stringify(archivosExistentes));
+    formData.append('editables_previos', JSON.stringify(editablesExistentes));
+    formData.append('finales_previos', JSON.stringify(finalesExistentes));
 
-    if (data.archivos && data.archivos.length > 0) {
-        for (let i = 0; i < data.archivos.length; i++) {
-            formData.append('archivos', data.archivos[i]);
+    if (data.editables && data.editables.length > 0) {
+        for (let i = 0; i < data.editables.length; i++) {
+            formData.append('editables', data.editables[i]);
+        }
+    }
+
+    if (data.finales && data.finales.length > 0) {
+        for (let i = 0; i < data.finales.length; i++) {
+            formData.append('finales', data.finales[i]);
         }
     }
 
@@ -137,81 +141,60 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
               <textarea 
                 rows="2" 
                 {...register("materia")}
-                style={{
-                  backgroundColor: '#1b1b29', 
-                  border: '1px solid #444', 
-                  color: '#fff', 
-                  borderRadius: '4px',
-                  padding: '8px',
-                  width: '100%',
-                  resize: 'vertical'
-                }}
+                style={{ backgroundColor: '#1b1b29', border: '1px solid #444', color: '#fff', borderRadius: '4px', padding: '8px', width: '100%', resize: 'vertical' }}
               ></textarea>
             </div>
             
-            <div className="form-control" style={{
-                background: 'rgba(255, 255, 255, 0.05)', 
-                padding: '15px', 
-                borderRadius: '8px', 
-                border: '1px dashed #555',
-                marginTop: '10px'
-            }}>
-              <label style={{fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#e0e0e0'}}>
-                <FaCloudUploadAlt size={18}/> Archivos Adjuntos
+            <div className="form-control" style={{ background: 'rgba(54, 153, 255, 0.05)', padding: '15px', borderRadius: '8px', border: '1px dashed #3699ff', marginTop: '10px' }}>
+              <label style={{fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#3699ff'}}>
+                <FaEdit size={18}/> 1. Archivos en Trámite (Borradores, Nube)
               </label>
-              
               <input 
-                type="file" 
-                multiple 
-                {...register("archivos")} 
-                style={{
-                    width: '100%', 
-                    padding: '8px', 
-                    background: '#1b1b29', 
-                    border: '1px solid #444', 
-                    borderRadius: '4px', 
-                    color: '#fff', 
-                    marginBottom: '8px'
-                }}
+                type="file" multiple {...register("editables")} 
+                style={{ width: '100%', padding: '8px', background: '#1b1b29', border: '1px solid #444', borderRadius: '4px', color: '#fff', marginBottom: '8px' }}
               />
-              <small style={{color: '#888', display: 'block', marginBottom: '12px'}}>
-                Formatos: Todos permitidos (Ctrl + Click para seleccionar varios)
-              </small>
+              <small style={{color: '#888', display: 'block', marginBottom: '12px'}}>Solo se guardan en Drive para editarlos en línea.</small>
 
-              {archivosExistentes.length > 0 && (
-                <div style={{
-                    marginTop: '10px', 
-                    maxHeight: '120px', 
-                    overflowY: 'auto', 
-                    borderTop: '1px solid #444', 
-                    paddingTop: '10px'
-                }}>
-                    <p style={{fontSize: '12px', fontWeight: 'bold', marginBottom: '8px', color: '#bbb'}}>Archivos cargados:</p>
-                    {archivosExistentes.map((archivo, index) => (
-                        <div key={index} style={{
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center', 
-                            background: '#2b2b40', 
-                            padding: '8px', 
-                            marginBottom: '5px', 
-                            borderRadius: '4px', 
-                            border: '1px solid #3f4254'
-                        }}>
+              {editablesExistentes.length > 0 && (
+                <div style={{ marginTop: '10px', maxHeight: '120px', overflowY: 'auto', borderTop: '1px solid #444', paddingTop: '10px' }}>
+                    {editablesExistentes.map((archivo, index) => (
+                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2b2b40', padding: '8px', marginBottom: '5px', borderRadius: '4px', border: '1px solid #3f4254' }}>
                             <div style={{display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden'}}>
                                 <FaFileAlt color="#3699ff"/>
-                                <a href={`${window.location.origin}${encodeURI(archivo.url)}`} target="_blank" rel="noopener noreferrer" style={{fontSize: '13px', color: '#e0e0e0', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                                    {archivo.nombre}
-                                </a>
+                                <a href={archivo.url_drive} target="_blank" rel="noopener noreferrer" style={{fontSize: '13px', color: '#e0e0e0', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{archivo.nombre}</a>
                             </div>
-                            <button type="button" onClick={() => borrarArchivoExistente(index)} style={{color: '#ff5b5b', border: 'none', background: 'none', cursor: 'pointer', padding: '4px'}}>
-                                <FaTrash title="Eliminar"/>
-                            </button>
+                            <button type="button" onClick={() => borrarEditable(index)} style={{color: '#ff5b5b', border: 'none', background: 'none', cursor: 'pointer', padding: '4px'}}><FaTrash title="Eliminar"/></button>
                         </div>
                     ))}
                 </div>
               )}
             </div>
+
+            <div className="form-control" style={{ background: 'rgba(28, 224, 137, 0.05)', padding: '15px', borderRadius: '8px', border: '1px dashed #1ce089', marginTop: '10px' }}>
+              <label style={{fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#1ce089'}}>
+                <FaLock size={18}/> 2. Documentos Finales (Solo Lectura, Servidor + Nube)
+              </label>
+              <input 
+                type="file" multiple {...register("finales")} 
+                style={{ width: '100%', padding: '8px', background: '#1b1b29', border: '1px solid #444', borderRadius: '4px', color: '#fff', marginBottom: '8px' }}
+              />
+              <small style={{color: '#888', display: 'block', marginBottom: '12px'}}>Se guardan de forma local en el servidor y una copia en Drive.</small>
+
+              {finalesExistentes.length > 0 && (
+                <div style={{ marginTop: '10px', maxHeight: '120px', overflowY: 'auto', borderTop: '1px solid #444', paddingTop: '10px' }}>
+                    {finalesExistentes.map((archivo, index) => (
+                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2b2b40', padding: '8px', marginBottom: '5px', borderRadius: '4px', border: '1px solid #3f4254' }}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden'}}>
+                                <FaFileAlt color="#1ce089"/>
+                                <a href={`${window.location.origin}${encodeURI(archivo.url_local)}`} target="_blank" rel="noopener noreferrer" style={{fontSize: '13px', color: '#e0e0e0', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{archivo.nombre}</a>
+                            </div>
+                            <button type="button" onClick={() => borrarFinal(index)} style={{color: '#ff5b5b', border: 'none', background: 'none', cursor: 'pointer', padding: '4px'}}><FaTrash title="Eliminar"/></button>
+                        </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
           </div>
           <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-cancel">Cancelar</button>
