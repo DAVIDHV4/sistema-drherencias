@@ -39,11 +39,21 @@ oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 const drive = google.drive({ version: 'v3', auth: oauth2Client });
 const FOLDER_BASE_ID = process.env.GOOGLE_FOLDER_BASE_ID;
 
+const folderCache = {};
+
 async function getOrCreateFolder(folderName, parentId) {
+    const cacheKey = `${parentId}_${folderName}`;
+    if (folderCache[cacheKey]) return folderCache[cacheKey];
+
     const res = await drive.files.list({ q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${parentId}' in parents and trashed=false`, fields: 'files(id, name)' });
-    if (res.data.files.length > 0) return res.data.files[0].id;
+    if (res.data.files.length > 0) {
+        folderCache[cacheKey] = res.data.files[0].id;
+        return res.data.files[0].id;
+    }
     const folder = await drive.files.create({ resource: { name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] }, fields: 'id' });
     await drive.permissions.create({ fileId: folder.data.id, requestBody: { role: 'writer', type: 'anyone' } });
+    
+    folderCache[cacheKey] = folder.data.id;
     return folder.data.id;
 }
 
@@ -115,24 +125,23 @@ app.post('/api/expedientes', upload.fields([{ name: 'editables' }, { name: 'fina
         const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
         const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
 
-        let listaEditables = [], listaFinales = [];
+        const promesasEditables = (req.files['editables'] || []).map(async (f) => {
+            const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
+            const uploadDrive = await uploadToDrive(f.path, nombreUtf8, f.mimetype, expCarpetaId, false);
+            fs.unlinkSync(f.path);
+            return { nombre: nombreUtf8, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
+        });
 
-        if (req.files && req.files['editables']) {
-            for (const f of req.files['editables']) {
-                const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const uploadDrive = await uploadToDrive(f.path, nombreUtf8, f.mimetype, expCarpetaId, false);
-                listaEditables.push({ nombre: nombreUtf8, url_drive: uploadDrive.link, drive_id: uploadDrive.id });
-                fs.unlinkSync(f.path);
-            }
-        }
-        if (req.files && req.files['finales']) {
-            for (const f of req.files['finales']) {
-                const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const newLocalPath = path.join(localFolderPath, nombreUtf8); fs.renameSync(f.path, newLocalPath);
-                const uploadDrive = await uploadToDrive(newLocalPath, nombreUtf8, f.mimetype, expCarpetaId, true);
-                listaFinales.push({ nombre: nombreUtf8, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(nombreUtf8)}`, url_drive: uploadDrive.link, drive_id: uploadDrive.id });
-            }
-        }
+        const promesasFinales = (req.files['finales'] || []).map(async (f) => {
+            const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
+            const newLocalPath = path.join(localFolderPath, nombreUtf8); fs.renameSync(f.path, newLocalPath);
+            const uploadDrive = await uploadToDrive(newLocalPath, nombreUtf8, f.mimetype, expCarpetaId, true);
+            return { nombre: nombreUtf8, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(nombreUtf8)}`, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
+        });
+
+        const listaEditables = await Promise.all(promesasEditables);
+        const listaFinales = await Promise.all(promesasFinales);
+
         res.json((await pool.query(`UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3 RETURNING *`, [JSON.stringify(listaEditables), JSON.stringify(listaFinales), nuevoId])).rows[0]);
     } catch (err) { res.status(500).json({ error: "Error" }); }
 });
@@ -149,26 +158,30 @@ app.put('/api/expedientes/:id', upload.fields([{ name: 'editables' }, { name: 'f
         const expCarpeta = data.nro_expediente ? data.nro_expediente.replace(/[/\\?%*:|"<>]/g, '-') : `EXP-${id}`;
         const localFolderPath = path.join(uploadDir, tipoCarpeta, expCarpeta);
         if (!fs.existsSync(localFolderPath)) { fs.mkdirSync(localFolderPath, { recursive: true }); }
-        const expCarpetaId = await getOrCreateFolder(expCarpeta, await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID));
+        
+        const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
+        const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
 
         let listaEditables = data.editables_previos ? JSON.parse(data.editables_previos) : (data.archivos_editables ? JSON.parse(data.archivos_editables) : []);
         let listaFinales = data.finales_previos ? JSON.parse(data.finales_previos) : (data.archivos_finales ? JSON.parse(data.archivos_finales) : []);
 
-        if (req.files && req.files['editables']) {
-            for (const f of req.files['editables']) {
-                const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const uploadDrive = await uploadToDrive(f.path, nombreUtf8, f.mimetype, expCarpetaId, false);
-                listaEditables.push({ nombre: nombreUtf8, url_drive: uploadDrive.link, drive_id: uploadDrive.id }); fs.unlinkSync(f.path);
-            }
-        }
-        if (req.files && req.files['finales']) {
-            for (const f of req.files['finales']) {
-                const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const newLocalPath = path.join(localFolderPath, nombreUtf8); fs.renameSync(f.path, newLocalPath);
-                const uploadDrive = await uploadToDrive(newLocalPath, nombreUtf8, f.mimetype, expCarpetaId, true);
-                listaFinales.push({ nombre: nombreUtf8, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(nombreUtf8)}`, url_drive: uploadDrive.link, drive_id: uploadDrive.id });
-            }
-        }
+        const promesasEditables = (req.files['editables'] || []).map(async (f) => {
+            const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
+            const uploadDrive = await uploadToDrive(f.path, nombreUtf8, f.mimetype, expCarpetaId, false);
+            fs.unlinkSync(f.path);
+            return { nombre: nombreUtf8, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
+        });
+
+        const promesasFinales = (req.files['finales'] || []).map(async (f) => {
+            const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
+            const newLocalPath = path.join(localFolderPath, nombreUtf8); fs.renameSync(f.path, newLocalPath);
+            const uploadDrive = await uploadToDrive(newLocalPath, nombreUtf8, f.mimetype, expCarpetaId, true);
+            return { nombre: nombreUtf8, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(nombreUtf8)}`, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
+        });
+
+        listaEditables.push(...(await Promise.all(promesasEditables)));
+        listaFinales.push(...(await Promise.all(promesasFinales)));
+
         res.json((await pool.query(`UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8, estado=$9, observaciones=$10, archivos_editables=$11, archivos_finales=$12 WHERE id=$13 RETURNING *`, [data.tipo_expediente, data.solicitante, data.dni_solicitante, data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.nro_expediente, data.estado, data.observaciones, JSON.stringify(listaEditables), JSON.stringify(listaFinales), id])).rows[0]);
     } catch (err) { res.status(500).json({ error: "Error" }); }
 });
@@ -182,26 +195,30 @@ app.post('/api/expedientes/:id/archivos-rapidos', upload.fields([{ name: 'editab
         const expCarpeta = exp.nro_expediente.replace(/[/\\?%*:|"<>]/g, '-');
         const localFolderPath = path.join(uploadDir, tipoCarpeta, expCarpeta);
         if (!fs.existsSync(localFolderPath)) { fs.mkdirSync(localFolderPath, { recursive: true }); }
-        const expCarpetaId = await getOrCreateFolder(expCarpeta, await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID));
+        
+        const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
+        const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
 
         let listaEditables = exp.archivos_editables ? JSON.parse(exp.archivos_editables) : [];
         let listaFinales = exp.archivos_finales ? JSON.parse(exp.archivos_finales) : [];
 
-        if (req.files && req.files['editables']) {
-            for (const f of req.files['editables']) {
-                const n = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const u = await uploadToDrive(f.path, n, f.mimetype, expCarpetaId, false);
-                listaEditables.push({ nombre: n, url_drive: u.link, drive_id: u.id }); fs.unlinkSync(f.path);
-            }
-        }
-        if (req.files && req.files['finales']) {
-            for (const f of req.files['finales']) {
-                const n = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const newPath = path.join(localFolderPath, n); fs.renameSync(f.path, newPath);
-                const u = await uploadToDrive(newPath, n, f.mimetype, expCarpetaId, true);
-                listaFinales.push({ nombre: n, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(n)}`, url_drive: u.link, drive_id: u.id });
-            }
-        }
+        const promesasEditables = (req.files['editables'] || []).map(async (f) => {
+            const n = Buffer.from(f.originalname, 'latin1').toString('utf8');
+            const u = await uploadToDrive(f.path, n, f.mimetype, expCarpetaId, false);
+            fs.unlinkSync(f.path);
+            return { nombre: n, url_drive: u.link, drive_id: u.id };
+        });
+
+        const promesasFinales = (req.files['finales'] || []).map(async (f) => {
+            const n = Buffer.from(f.originalname, 'latin1').toString('utf8');
+            const newPath = path.join(localFolderPath, n); fs.renameSync(f.path, newPath);
+            const u = await uploadToDrive(newPath, n, f.mimetype, expCarpetaId, true);
+            return { nombre: n, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(n)}`, url_drive: u.link, drive_id: u.id };
+        });
+
+        listaEditables.push(...(await Promise.all(promesasEditables)));
+        listaFinales.push(...(await Promise.all(promesasFinales)));
+
         await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(listaEditables), JSON.stringify(listaFinales), id]);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "Error" }); }
