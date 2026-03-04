@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaTimes, FaCloudUploadAlt, FaLock, FaFileAlt, FaCheckCircle, FaTrash } from 'react-icons/fa';
+import { FaTimes, FaCloudUploadAlt, FaLock, FaFileAlt, FaCheckCircle, FaTrash, FaUnlock } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import './estilos/Formulario.css'; 
 
@@ -70,6 +70,29 @@ export default function ModalArchivos({ expediente, onClose, onGuardarExitoso })
           await recargarDatos();
         } catch (error) {
           Swal.fire('Error', 'Hubo un problema al bloquear el archivo.', 'error');
+        }
+      }
+    });
+  };
+
+  const handleDesmarcarFinal = async (archivo) => {
+    Swal.fire({
+      title: '¿Revertir a Borrador?',
+      text: "El archivo se desbloqueará en Google Drive y pasará a En Trámite. La copia de seguridad en el servidor se eliminará.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#f6c23e',
+      cancelButtonColor: '#555',
+      confirmButtonText: 'Sí, desbloquear'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        Swal.fire({ title: 'Desbloqueando en Drive...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        try {
+          await axios.put(`/api/expedientes/${expediente.id}/desmarcar-final`, { drive_id: archivo.drive_id, url_drive: archivo.url_drive });
+          await Swal.fire({ icon: 'success', title: '¡Desbloqueado!', text: 'El archivo vuelve a estar En Trámite.', timer: 1500, showConfirmButton: false });
+          await recargarDatos();
+        } catch (error) {
+          Swal.fire('Error', 'Hubo un problema al desbloquear el archivo.', 'error');
         }
       }
     });
@@ -156,9 +179,14 @@ export default function ModalArchivos({ expediente, onClose, onGuardarExitoso })
                     {a.url_local && <a href={`/api/descargar?ruta=${encodeURIComponent(a.url_local)}`} download target="_blank" rel="noreferrer" style={{ color: '#3699ff' }}>Descargar Copia Local</a>}
                   </div>
                 </div>
-                <button onClick={() => handleEliminar(a, 'finales')} style={{ background: '#d33', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Eliminar">
-                  <FaTrash />
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => handleDesmarcarFinal(a)} style={{ background: '#f6c23e', color: '#000', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }} title="Revertir a Borrador">
+                    <FaUnlock /> Desbloquear
+                  </button>
+                  <button onClick={() => handleEliminar(a, 'finales')} style={{ background: '#d33', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Eliminar">
+                    <FaTrash />
+                  </button>
+                </div>
               </div>
             )) : <p style={{ color: '#888', fontSize: '14px' }}>No hay documentos finales.</p>}
 

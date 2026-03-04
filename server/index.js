@@ -264,6 +264,37 @@ app.put('/api/expedientes/:id/marcar-final', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Error" }); }
 });
 
+app.put('/api/expedientes/:id/desmarcar-final', async (req, res) => {
+    try {
+        const { id } = req.params; const { drive_id, url_drive } = req.body;
+        
+        let fId = drive_id;
+        if (!fId && url_drive) { const m = url_drive.match(/\/d\/(.+?)\//); fId = m ? m[1] : null; }
+        if (!fId) return res.status(400).json({error: "ID inválido"});
+
+        await drive.files.update({ fileId: fId, requestBody: { contentRestrictions: [{ readOnly: false }] } });
+
+        const exp = (await pool.query('SELECT * FROM expedientes WHERE id = $1', [id])).rows[0];
+        let editables = JSON.parse(exp.archivos_editables || '[]');
+        let finales = JSON.parse(exp.archivos_finales || '[]');
+
+        const index = finales.findIndex(a => a.drive_id === fId || (a.url_drive && a.url_drive.includes(fId)));
+        if (index !== -1) {
+            const archivo = finales.splice(index, 1)[0];
+            
+            if (archivo.url_local) {
+                const localPath = path.join(__dirname, decodeURIComponent(archivo.url_local));
+                if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+                delete archivo.url_local; 
+            }
+            
+            editables.push(archivo);
+            await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
+        }
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: "Error" }); }
+});
+
 app.put('/api/expedientes/:id/eliminar-archivo', async (req, res) => {
     try {
         const { id } = req.params; 
