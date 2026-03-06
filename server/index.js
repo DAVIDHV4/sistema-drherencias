@@ -76,7 +76,7 @@ app.post('/api/login', async (req, res) => {
         if (result.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
         const esCorrecta = await bcrypt.compare(password, result.rows[0].password);
         if (esCorrecta) res.json({ mensaje: "Login exitoso", usuario: result.rows[0].usuario }); else res.status(401).json({ error: "Error" });
-    } catch (err) { res.status(500).json({ error: "Error" }); }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno del servidor" }); }
 });
 
 app.get('/api/expedientes', async (req, res) => {
@@ -105,7 +105,7 @@ app.get('/api/expedientes', async (req, res) => {
             paginaActual: parseInt(page), 
             totalPaginas: Math.ceil(total / limit) 
         });
-    } catch (err) { res.status(500).json({ error: "Error" }); }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno del servidor" }); }
 });
 
 app.post('/api/expedientes', upload.fields([{ name: 'editables' }, { name: 'finales' }]), async (req, res) => {
@@ -125,14 +125,14 @@ app.post('/api/expedientes', upload.fields([{ name: 'editables' }, { name: 'fina
         const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
         const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
 
-        const promesasEditables = (req.files['editables'] || []).map(async (f) => {
+        const promesasEditables = (req.files && req.files['editables'] ? req.files['editables'] : []).map(async (f) => {
             const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
             const uploadDrive = await uploadToDrive(f.path, nombreUtf8, f.mimetype, expCarpetaId, false);
             fs.unlinkSync(f.path);
             return { nombre: nombreUtf8, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
         });
 
-        const promesasFinales = (req.files['finales'] || []).map(async (f) => {
+        const promesasFinales = (req.files && req.files['finales'] ? req.files['finales'] : []).map(async (f) => {
             const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
             const newLocalPath = path.join(localFolderPath, nombreUtf8); fs.renameSync(f.path, newLocalPath);
             const uploadDrive = await uploadToDrive(newLocalPath, nombreUtf8, f.mimetype, expCarpetaId, true);
@@ -143,7 +143,7 @@ app.post('/api/expedientes', upload.fields([{ name: 'editables' }, { name: 'fina
         const listaFinales = await Promise.all(promesasFinales);
 
         res.json((await pool.query(`UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3 RETURNING *`, [JSON.stringify(listaEditables), JSON.stringify(listaFinales), nuevoId])).rows[0]);
-    } catch (err) { res.status(500).json({ error: "Error" }); }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno del servidor" }); }
 });
 
 app.put('/api/expedientes/:id', upload.fields([{ name: 'editables' }, { name: 'finales' }]), async (req, res) => {
@@ -165,14 +165,14 @@ app.put('/api/expedientes/:id', upload.fields([{ name: 'editables' }, { name: 'f
         let listaEditables = data.editables_previos ? JSON.parse(data.editables_previos) : (data.archivos_editables ? JSON.parse(data.archivos_editables) : []);
         let listaFinales = data.finales_previos ? JSON.parse(data.finales_previos) : (data.archivos_finales ? JSON.parse(data.archivos_finales) : []);
 
-        const promesasEditables = (req.files['editables'] || []).map(async (f) => {
+        const promesasEditables = (req.files && req.files['editables'] ? req.files['editables'] : []).map(async (f) => {
             const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
             const uploadDrive = await uploadToDrive(f.path, nombreUtf8, f.mimetype, expCarpetaId, false);
             fs.unlinkSync(f.path);
             return { nombre: nombreUtf8, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
         });
 
-        const promesasFinales = (req.files['finales'] || []).map(async (f) => {
+        const promesasFinales = (req.files && req.files['finales'] ? req.files['finales'] : []).map(async (f) => {
             const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
             const newLocalPath = path.join(localFolderPath, nombreUtf8); fs.renameSync(f.path, newLocalPath);
             const uploadDrive = await uploadToDrive(newLocalPath, nombreUtf8, f.mimetype, expCarpetaId, true);
@@ -183,7 +183,7 @@ app.put('/api/expedientes/:id', upload.fields([{ name: 'editables' }, { name: 'f
         listaFinales.push(...(await Promise.all(promesasFinales)));
 
         res.json((await pool.query(`UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8, estado=$9, observaciones=$10, archivos_editables=$11, archivos_finales=$12 WHERE id=$13 RETURNING *`, [data.tipo_expediente, data.solicitante, data.dni_solicitante, data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.nro_expediente, data.estado, data.observaciones, JSON.stringify(listaEditables), JSON.stringify(listaFinales), id])).rows[0]);
-    } catch (err) { res.status(500).json({ error: "Error" }); }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno del servidor" }); }
 });
 
 app.post('/api/expedientes/:id/archivos-rapidos', upload.fields([{ name: 'editables' }, { name: 'finales' }]), async (req, res) => {
@@ -202,14 +202,14 @@ app.post('/api/expedientes/:id/archivos-rapidos', upload.fields([{ name: 'editab
         let listaEditables = exp.archivos_editables ? JSON.parse(exp.archivos_editables) : [];
         let listaFinales = exp.archivos_finales ? JSON.parse(exp.archivos_finales) : [];
 
-        const promesasEditables = (req.files['editables'] || []).map(async (f) => {
+        const promesasEditables = (req.files && req.files['editables'] ? req.files['editables'] : []).map(async (f) => {
             const n = Buffer.from(f.originalname, 'latin1').toString('utf8');
             const u = await uploadToDrive(f.path, n, f.mimetype, expCarpetaId, false);
             fs.unlinkSync(f.path);
             return { nombre: n, url_drive: u.link, drive_id: u.id };
         });
 
-        const promesasFinales = (req.files['finales'] || []).map(async (f) => {
+        const promesasFinales = (req.files && req.files['finales'] ? req.files['finales'] : []).map(async (f) => {
             const n = Buffer.from(f.originalname, 'latin1').toString('utf8');
             const newPath = path.join(localFolderPath, n); fs.renameSync(f.path, newPath);
             const u = await uploadToDrive(newPath, n, f.mimetype, expCarpetaId, true);
@@ -221,7 +221,7 @@ app.post('/api/expedientes/:id/archivos-rapidos', upload.fields([{ name: 'editab
 
         await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(listaEditables), JSON.stringify(listaFinales), id]);
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: "Error" }); }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno del servidor" }); }
 });
 
 app.put('/api/expedientes/:id/marcar-final', async (req, res) => {
@@ -261,7 +261,7 @@ app.put('/api/expedientes/:id/marcar-final', async (req, res) => {
             await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
         }
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: "Error" }); }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno del servidor" }); }
 });
 
 app.put('/api/expedientes/:id/desmarcar-final', async (req, res) => {
@@ -292,7 +292,7 @@ app.put('/api/expedientes/:id/desmarcar-final', async (req, res) => {
             await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
         }
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: "Error" }); }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno del servidor" }); }
 });
 
 app.put('/api/expedientes/:id/eliminar-archivo', async (req, res) => {
@@ -321,7 +321,7 @@ app.put('/api/expedientes/:id/eliminar-archivo', async (req, res) => {
 
         await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: "Error" }); }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno del servidor" }); }
 });
 
 app.get('/api/descargar', async (req, res) => {
@@ -336,7 +336,7 @@ app.get('/api/descargar', async (req, res) => {
         if (!fs.existsSync(rutaFisica)) return res.status(404).json({ error: "El archivo no existe" });
 
         res.download(rutaFisica);
-    } catch (error) { res.status(500).json({ error: "Error interno" }); }
+    } catch (error) { console.error(error); res.status(500).json({ error: "Error interno" }); }
 });
 
 app.use((req, res) => { res.sendFile(path.join(frontendPath, 'index.html')); });
