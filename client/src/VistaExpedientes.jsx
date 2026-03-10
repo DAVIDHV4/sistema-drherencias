@@ -118,7 +118,8 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
             </div>
         )}
 
-        <div className="vista-table-card">
+        {/* AQUÍ ESTÁ EL ÚNICO CAMBIO: SE AGREGÓ EL STYLE AL CONTENEDOR */}
+        <div className="vista-table-card" style={{ overflowX: 'auto', width: '100%' }}>
             <table className="vista-table">
                 <thead>
                     <tr>
