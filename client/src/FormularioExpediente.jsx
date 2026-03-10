@@ -129,7 +129,15 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
             <h4 className="section-title">2. Datos del Solicitante</h4>
             <div className="row-2">
               <div className="form-control"><label>Solicitante *</label><input {...register("solicitante", { required: true })} /></div>
-              <div className="form-control"><label>DNI Solicitante</label><input {...register("dni_solicitante")} /></div>
+              <div className="form-control">
+                <label>DNI Solicitante</label>
+                <input 
+                  {...register("dni_solicitante", { 
+                    onChange: (e) => e.target.value = e.target.value.replace(/[^0-9]/g, '') 
+                  })} 
+                  maxLength="12" 
+                />
+              </div>
             </div>
           </div>
           <div className="form-section">
