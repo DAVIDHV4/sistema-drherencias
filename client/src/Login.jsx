@@ -13,7 +13,6 @@ function Login({ onLogin }) {
     setIsLoading(true);
     
     try {
-      // CORREGIDO: Ruta relativa (sin localhost)
       const res = await axios.post('/api/login', form);
       if (res.data.usuario) {
         onLogin(res.data.usuario);
@@ -30,7 +29,6 @@ function Login({ onLogin }) {
       <div className="zoom-login-card">
         
         <div className="zoom-header">
-          {/* Aquí podrías poner tu logo si tuvieras uno */}
           <h1>Iniciar Sesión</h1>
           <p className="zoom-subtitle">Sistema Legal Corporativo</p>
         </div>
@@ -47,7 +45,7 @@ function Login({ onLogin }) {
               className="zoom-input"
               placeholder="Ingrese su usuario"
               value={form.usuario}
-              onChange={(e) => setForm({...form, usuario: e.target.value})}
+              onChange={(e) => setForm({...form, usuario: e.target.value.toUpperCase()})}
               required
             />
           </div>

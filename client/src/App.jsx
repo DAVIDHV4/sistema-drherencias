@@ -23,7 +23,7 @@ function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('/api/login', { usuario: username, password });
+      const res = await axios.post('/api/login', { usuario: username.toUpperCase(), password });
       if (res.data.usuario) {
         setUsuario(res.data.usuario);
         localStorage.setItem('usuario_sistema', res.data.usuario);
