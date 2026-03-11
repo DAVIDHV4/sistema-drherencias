@@ -109,6 +109,20 @@ app.get('/api/expedientes', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: "Error interno" }); }
 });
 
+app.get('/api/expedientes/buscar-global', async (req, res) => {
+    const { query } = req.query;
+    if (!query) return res.json([]);
+    try {
+        const searchParam = `%${query}%`;
+        const sql = `SELECT * FROM expedientes WHERE nro_expediente ILIKE $1 OR solicitante ILIKE $1 OR dni_solicitante ILIKE $1 ORDER BY id DESC LIMIT 50`;
+        const result = await pool.query(sql, [searchParam]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
 app.post('/api/expedientes', upload.fields([{ name: 'editables' }, { name: 'finales' }]), async (req, res) => {
     try {
         const data = req.body;

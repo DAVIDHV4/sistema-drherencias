@@ -12,9 +12,11 @@ function MenuPrincipal({ onSeleccionar, onLogout, usuario }) {
     if (!busquedaGlobal.trim()) return setResultados([]);
     try {
       const res = await axios.get(`/api/expedientes/buscar-global?query=${busquedaGlobal}`);
-      setResultados(res.data);
+      const dataArray = res.data.data ? res.data.data : res.data;
+      setResultados(Array.isArray(dataArray) ? dataArray : []);
     } catch (error) {
       console.error("Error buscando:", error);
+      setResultados([]);
     }
   };
 
@@ -48,7 +50,6 @@ function MenuPrincipal({ onSeleccionar, onLogout, usuario }) {
               <thead>
                 <tr style={{backgroundColor: '#f8f9fa'}}>
                   <th style={{padding: '12px', color: '#000', borderBottom: '2px solid #eee'}}>NRO. EXP</th>
-                  {/* CORRECCIÓN DE ENCABEZADO */}
                   <th style={{padding: '12px', color: '#000', borderBottom: '2px solid #eee'}}>DEMANDANTE / SOLICITANTE</th>
                   <th style={{padding: '12px', color: '#000', borderBottom: '2px solid #eee'}}>TIPO</th>
                   <th style={{padding: '12px', color: '#000', borderBottom: '2px solid #eee'}}>ACCION</th>
@@ -58,12 +59,11 @@ function MenuPrincipal({ onSeleccionar, onLogout, usuario }) {
                 {resultados.map(exp => (
                   <tr key={exp.id} style={{borderBottom: '1px solid #eee'}}>
                     <td style={{padding: '12px', color: '#000', fontWeight: 'bold'}}>{exp.nro_expediente}</td>
-                    {/* CORRECCIÓN: Ahora lee 'solicitante' en lugar de 'demandante' */}
                     <td style={{padding: '12px', color: '#000'}}>{exp.solicitante}</td>
                     <td style={{padding: '12px', color: '#333', fontSize: '13px'}}>{exp.tipo_expediente}</td>
                     <td style={{padding: '12px', textAlign: 'center'}}>
                       <button 
-                        onClick={() => onSeleccionar(exp.tipo_expediente, busquedaGlobal)} 
+                        onClick={() => onSeleccionar(exp.tipo_expediente, busquedaGlobal, exp.categoria)}
                         style={{padding: '6px 12px', backgroundColor: '#3699ff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}
                       >
                         Ir a la Tabla

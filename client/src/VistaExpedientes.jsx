@@ -6,7 +6,7 @@ import ModalArchivos from './ModalArchivos';
 import Swal from 'sweetalert2';
 import './estilos/VistaExpedientes.css'; 
 
-function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout, onVolver }) {
+function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCategoriaInicial, onLogout, onVolver }) {
   
   const getCategoriaInicial = (principal) => {
     if (principal === "Expediente Administrativo" || principal === "Expediente Notarial") return "Compraventa";
@@ -18,7 +18,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
 
   const [expedientes, setExpedientes] = useState([]);
   const [busqueda, setBusqueda] = useState(filtroInicial || "");
-  const [subCategoria, setSubCategoria] = useState(getCategoriaInicial(categoriaPrincipal)); 
+  const [subCategoria, setSubCategoria] = useState(subCategoriaInicial || getCategoriaInicial(categoriaPrincipal)); 
   
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [expedienteAEditar, setExpedienteAEditar] = useState(null);
@@ -28,8 +28,8 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
   const [totalPaginas, setTotalPaginas] = useState(1);
 
   useEffect(() => {
-    setSubCategoria(getCategoriaInicial(categoriaPrincipal));
-  }, [categoriaPrincipal]);
+    setSubCategoria(subCategoriaInicial || getCategoriaInicial(categoriaPrincipal));
+  }, [categoriaPrincipal, subCategoriaInicial]);
 
   useEffect(() => {
     setPagina(1);
@@ -118,7 +118,6 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, onLogout
             </div>
         )}
 
-        {/* AQUÍ ESTÁ EL ÚNICO CAMBIO: SE AGREGÓ EL STYLE AL CONTENEDOR */}
         <div className="vista-table-card" style={{ overflowX: 'auto', width: '100%' }}>
             <table className="vista-table">
                 <thead>

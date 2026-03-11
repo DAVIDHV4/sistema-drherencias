@@ -9,6 +9,7 @@ function App() {
   const [vistaActual, setVistaActual] = useState('menu'); 
   const [opcionSeleccionada, setOpcionSeleccionada] = useState("");
   const [filtroBuscador, setFiltroBuscador] = useState("");
+  const [subCategoriaSeleccionada, setSubCategoriaSeleccionada] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -41,13 +42,15 @@ function App() {
     setVistaActual('menu');
     setOpcionSeleccionada("");
     setFiltroBuscador("");
+    setSubCategoriaSeleccionada("");
     setUsername("");
     setPassword("");
   };
 
-  const irATabla = (opcion, busqueda = "") => {
+  const irATabla = (opcion, busqueda = "", subCategoria = "") => {
     setOpcionSeleccionada(opcion);
     setFiltroBuscador(busqueda);
+    setSubCategoriaSeleccionada(subCategoria);
     setVistaActual('tabla');
   };
 
@@ -55,6 +58,7 @@ function App() {
     setVistaActual('menu');
     setOpcionSeleccionada("");
     setFiltroBuscador("");
+    setSubCategoriaSeleccionada("");
   };
 
   if (!usuario) {
@@ -83,6 +87,7 @@ function App() {
         usuario={usuario} 
         categoriaPrincipal={opcionSeleccionada} 
         filtroInicial={filtroBuscador}
+        subCategoriaInicial={subCategoriaSeleccionada}
         onLogout={handleLogout} 
         onVolver={volverAlMenu}
       />
