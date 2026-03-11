@@ -115,6 +115,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
                 <button className={`v-tab ${subCategoria === "Cesión de posesión" ? 'active' : ''}`} onClick={() => setSubCategoria("Cesión de posesión")}>Cesión de posesión</button>
                 <button className={`v-tab ${subCategoria === "Prescripción adquisitivo de dominio" ? 'active' : ''}`} onClick={() => setSubCategoria("Prescripción adquisitivo de dominio")}>Prescripción adquisitivo de dominio</button>
                 <button className={`v-tab ${subCategoria === "arrendamiento" ? 'active' : ''}`} onClick={() => setSubCategoria("arrendamiento")}>Arrendamiento</button>
+                <button className={`v-tab ${subCategoria === "Donaciones" ? 'active' : ''}`} onClick={() => setSubCategoria("Donaciones")}>Donaciones</button>
             </div>
         )}
 
