@@ -51,7 +51,7 @@ function normalizarArchivos(datosAntiguos) {
 }
 
 async function sincronizarArchivos() {
-    console.log("🚀 Iniciando escaneo adaptativo de archivos antiguos...");
+    console.log("🚀 Iniciando migración forzada a la nueva cuenta de Drive...");
     
     try {
         const result = await pool.query('SELECT * FROM expedientes');
@@ -65,55 +65,57 @@ async function sincronizarArchivos() {
 
             for (let i = 0; i < editables.length; i++) {
                 const archivo = editables[i];
-                if (archivo.url_local && !archivo.url_drive) {
-                    console.log(`⏳ Subiendo Borrador: ${archivo.nombre || 'Archivo'} (Exp: ${exp.nro_expediente})`);
+                if (archivo.url_local) {
                     const rutaFisica = path.join(__dirname, decodeURIComponent(archivo.url_local));
                     
                     if (fs.existsSync(rutaFisica)) {
+                        console.log(`⏳ Migrando Borrador: ${archivo.nombre || 'Archivo'} (Exp: ${exp.nro_expediente})`);
                         const tipoCarpeta = exp.tipo_expediente || 'Otros';
                         const expCarpeta = exp.nro_expediente.replace(/[/\\?%*:|"<>]/g, '-');
+                        
                         const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
                         const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
 
                         const uploadDrive = await uploadToDrive(rutaFisica, archivo.nombre, expCarpetaId, false);
-                        editables[i].url_drive = uploadDrive.link;
+                        editables[i].url_drive = uploadDrive.link; 
                         editables[i].drive_id = uploadDrive.id;
                         necesitaActualizar = true;
                         totalSubidos++;
-                        console.log(`✅ ¡Subido con éxito!`);
+                        console.log(`✅ ¡Subido a la cuenta nueva!`);
                     }
                 }
             }
 
             for (let i = 0; i < finales.length; i++) {
                 const archivo = finales[i];
-                if (archivo.url_local && !archivo.url_drive) {
-                    console.log(`⏳ Subiendo Finalizado: ${archivo.nombre || 'Archivo'} (Exp: ${exp.nro_expediente})`);
+                if (archivo.url_local) {
                     const rutaFisica = path.join(__dirname, decodeURIComponent(archivo.url_local));
                     
                     if (fs.existsSync(rutaFisica)) {
+                        console.log(`⏳ Migrando Finalizado: ${archivo.nombre || 'Archivo'} (Exp: ${exp.nro_expediente})`);
                         const tipoCarpeta = exp.tipo_expediente || 'Otros';
                         const expCarpeta = exp.nro_expediente.replace(/[/\\?%*:|"<>]/g, '-');
+                        
                         const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
                         const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
 
                         const uploadDrive = await uploadToDrive(rutaFisica, archivo.nombre, expCarpetaId, true);
-                        finales[i].url_drive = uploadDrive.link;
+                        finales[i].url_drive = uploadDrive.link; 
                         finales[i].drive_id = uploadDrive.id;
                         necesitaActualizar = true;
                         totalSubidos++;
-                        console.log(`✅ ¡Subido y bloqueado con éxito!`);
+                        console.log(`✅ ¡Subido y bloqueado en la cuenta nueva!`);
                     }
                 }
             }
 
             if (necesitaActualizar) {
                 await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), exp.id]);
-                console.log(`💾 Base de datos actualizada para el expediente ${exp.nro_expediente} al nuevo formato.`);
+                console.log(`💾 BD actualizada para el exp ${exp.nro_expediente} con los nuevos links.`);
             }
         }
         
-        console.log(`\n🎉 ¡Sincronización completada! Se subieron ${totalSubidos} archivos antiguos a Drive.`);
+        console.log(`\n🎉 ¡Migración completada! Se trasladaron ${totalSubidos} archivos a la nueva cuenta.`);
         process.exit(0);
 
     } catch (error) {
