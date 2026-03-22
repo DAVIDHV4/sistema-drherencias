@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaFileContract, FaBalanceScale, FaUserTie, FaArchive, FaSearch } from 'react-icons/fa';
+import { FaFileContract, FaBalanceScale, FaUserTie, FaArchive, FaSearch, FaCalendarAlt } from 'react-icons/fa';
 import axios from 'axios';
 import './estilos/MenuPrincipal.css';
 
@@ -108,6 +108,11 @@ function MenuPrincipal({ onSeleccionar, onLogout, usuario }) {
             <div className="icon-circle"><FaArchive /></div>
             <h3>Expediente Archivado</h3>
             <p>Expedientes concluidos y almacenados.</p>
+          </div>
+          <div className="card-menu" onClick={() => onSeleccionar("Gestión de Citas")}>
+            <div className="icon-circle"><FaCalendarAlt /></div>
+            <h3>Gestión de Citas</h3>
+            <p>Programación de reuniones y videollamadas.</p>
           </div>
         </div>
       </div>

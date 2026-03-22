@@ -37,6 +37,7 @@ const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
 const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 const drive = google.drive({ version: 'v3', auth: oauth2Client });
+const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 const FOLDER_BASE_ID = process.env.GOOGLE_FOLDER_BASE_ID;
 
 const folderCache = {};
@@ -338,6 +339,90 @@ app.get('/api/descargar', async (req, res) => {
         if (!fs.existsSync(rutaFisica)) return res.status(404).json({ error: "El archivo no existe" });
         res.download(rutaFisica);
     } catch (error) { console.error(error); res.status(500).json({ error: "Error interno" }); }
+});
+
+app.get('/api/citas', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM citas ORDER BY fecha DESC, hora DESC');
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error interno" });
+    }
+});
+
+app.put('/api/citas/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { fecha, hora, solicitante, motivo } = req.body;
+        const result = await pool.query(
+            'UPDATE citas SET fecha=$1, hora=$2, solicitante=$3, motivo=$4 WHERE id=$5 RETURNING *',
+            [fecha, hora, solicitante, motivo, id]
+        );
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error interno" });
+    }
+});
+
+app.delete('/api/citas/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query('DELETE FROM citas WHERE id=$1', [id]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error interno" });
+    }
+});
+app.post('/api/citas', async (req, res) => {
+    try {
+        const { fecha, hora, solicitante, motivo, generarMeet } = req.body;
+        const startDateTime = new Date(`${fecha}T${hora}:00-05:00`);
+        const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+
+        const event = {
+            summary: `Cita Legal - ${solicitante}`,
+            description: motivo,
+            start: { dateTime: startDateTime.toISOString(), timeZone: 'America/Lima' },
+            end: { dateTime: endDateTime.toISOString(), timeZone: 'America/Lima' },
+            reminders: {
+                useDefault: false,
+                overrides: [
+                    { method: 'popup', minutes: 60 },
+                    { method: 'popup', minutes: 15 }
+                ]
+            }
+        };
+
+        if (generarMeet) {
+            event.conferenceData = {
+                createRequest: {
+                    requestId: `meet-${Date.now()}`,
+                    conferenceSolutionKey: { type: 'hangoutsMeet' }
+                }
+            };
+        }
+
+        const calendarRes = await calendar.events.insert({
+            calendarId: 'primary',
+            resource: event,
+            conferenceDataVersion: generarMeet ? 1 : 0
+        });
+
+        const enlace_meet = generarMeet ? calendarRes.data.hangoutLink : null;
+
+        const newCita = await pool.query(
+            `INSERT INTO citas (fecha, hora, solicitante, motivo, enlace_meet) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [fecha, hora, solicitante, motivo, enlace_meet]
+        );
+
+        res.json(newCita.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al crear la cita o el enlace de Meet" });
+    }
 });
 
 app.use((req, res) => { res.sendFile(path.join(frontendPath, 'index.html')); });

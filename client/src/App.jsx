@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import MenuPrincipal from './MenuPrincipal';
 import VistaExpedientes from './VistaExpedientes'; 
+import VistaCitas from './VistaCitas';
 import './App.css'; 
 
 function App() {
@@ -51,7 +52,11 @@ function App() {
     setOpcionSeleccionada(opcion);
     setFiltroBuscador(busqueda);
     setSubCategoriaSeleccionada(subCategoria);
-    setVistaActual('tabla');
+    if (opcion === "Gestión de Citas") {
+      setVistaActual('citas');
+    } else {
+      setVistaActual('tabla');
+    }
   };
 
   const volverAlMenu = () => {
@@ -79,6 +84,10 @@ function App() {
 
   if (vistaActual === 'menu') {
     return <MenuPrincipal usuario={usuario} onLogout={handleLogout} onSeleccionar={irATabla} />;
+  }
+
+  if (vistaActual === 'citas') {
+    return <VistaCitas usuario={usuario} onLogout={handleLogout} onVolver={volverAlMenu} />;
   }
 
   if (vistaActual === 'tabla') {
