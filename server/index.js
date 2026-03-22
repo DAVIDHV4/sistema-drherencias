@@ -351,31 +351,6 @@ app.get('/api/citas', async (req, res) => {
     }
 });
 
-app.put('/api/citas/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { fecha, hora, solicitante, motivo } = req.body;
-        const result = await pool.query(
-            'UPDATE citas SET fecha=$1, hora=$2, solicitante=$3, motivo=$4 WHERE id=$5 RETURNING *',
-            [fecha, hora, solicitante, motivo, id]
-        );
-        res.json(result.rows[0]);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Error interno" });
-    }
-});
-
-app.delete('/api/citas/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        await pool.query('DELETE FROM citas WHERE id=$1', [id]);
-        res.json({ success: true });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Error interno" });
-    }
-});
 app.post('/api/citas', async (req, res) => {
     try {
         const { fecha, hora, solicitante, motivo, generarMeet } = req.body;
@@ -383,7 +358,7 @@ app.post('/api/citas', async (req, res) => {
         const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
 
         const event = {
-            summary: `Cita Legal - ${solicitante}`,
+            summary: solicitante,
             description: motivo,
             start: { dateTime: startDateTime.toISOString(), timeZone: 'America/Lima' },
             end: { dateTime: endDateTime.toISOString(), timeZone: 'America/Lima' },
@@ -412,16 +387,76 @@ app.post('/api/citas', async (req, res) => {
         });
 
         const enlace_meet = generarMeet ? calendarRes.data.hangoutLink : null;
+        const google_event_id = calendarRes.data.id; 
 
         const newCita = await pool.query(
-            `INSERT INTO citas (fecha, hora, solicitante, motivo, enlace_meet) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [fecha, hora, solicitante, motivo, enlace_meet]
+            `INSERT INTO citas (fecha, hora, solicitante, motivo, enlace_meet, google_event_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [fecha, hora, solicitante, motivo, enlace_meet, google_event_id]
         );
 
         res.json(newCita.rows[0]);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al crear la cita o el enlace de Meet" });
+        res.status(500).json({ error: "Error al crear la cita" });
+    }
+});
+
+app.put('/api/citas/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { fecha, hora, solicitante, motivo } = req.body;
+        
+        const citaDb = await pool.query('SELECT google_event_id FROM citas WHERE id=$1', [id]);
+        const eventId = citaDb.rows.length > 0 ? citaDb.rows[0].google_event_id : null;
+
+        if (eventId) {
+            const startDateTime = new Date(`${fecha}T${hora}:00-05:00`);
+            const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+            
+            try {
+                await calendar.events.patch({
+                    calendarId: 'primary',
+                    eventId: eventId,
+                    resource: {
+                        summary: solicitante,
+                        description: motivo,
+                        start: { dateTime: startDateTime.toISOString(), timeZone: 'America/Lima' },
+                        end: { dateTime: endDateTime.toISOString(), timeZone: 'America/Lima' }
+                    }
+                });
+            } catch (e) {} 
+        }
+
+        const result = await pool.query(
+            'UPDATE citas SET fecha=$1, hora=$2, solicitante=$3, motivo=$4 WHERE id=$5 RETURNING *',
+            [fecha, hora, solicitante, motivo, id]
+        );
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error interno" });
+    }
+});
+
+app.delete('/api/citas/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const citaDb = await pool.query('SELECT google_event_id FROM citas WHERE id=$1', [id]);
+        
+        if (citaDb.rows.length > 0 && citaDb.rows[0].google_event_id) {
+            try {
+                await calendar.events.delete({
+                    calendarId: 'primary',
+                    eventId: citaDb.rows[0].google_event_id
+                });
+            } catch (e) {} 
+        }
+
+        await pool.query('DELETE FROM citas WHERE id=$1', [id]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error interno" });
     }
 });
 
