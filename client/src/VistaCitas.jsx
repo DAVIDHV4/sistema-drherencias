@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FaPlus, FaSignOutAlt, FaHome, FaVideo, FaBell, FaChevronLeft, FaChevronRight, FaTimes, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaVideo, FaBell, FaChevronLeft, FaChevronRight, FaTimes, FaEdit, FaTrash } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import './estilos/VistaExpedientes.css'; 
 
@@ -116,34 +116,36 @@ function VistaCitas({ usuario, onLogout, onVolver }) {
 
     const mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
+    // He quitado el estilo de tarjeta (bgColor white, padding, shadow, borderRadius) del contenedor principal
     return (
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ backgroundColor: 'transparent', padding: '0 30px 30px 30px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '20px 0', borderBottom: '1px solid #eee' }}>
           <button onClick={() => cambiarMes(-1)} style={{ padding: '10px', border: 'none', background: '#f0f0f0', borderRadius: '8px', cursor: 'pointer' }}><FaChevronLeft /></button>
-          <h2 style={{ margin: 0, color: '#333' }}>{mesesNombres[month]} {year}</h2>
+          <h2 style={{ margin: 0, color: '#333', fontSize: '24px' }}>{mesesNombres[month]} {year}</h2>
           <button onClick={() => cambiarMes(1)} style={{ padding: '10px', border: 'none', background: '#f0f0f0', borderRadius: '8px', cursor: 'pointer' }}><FaChevronRight /></button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', textAlign: 'center' }}>
-          {diasSemana.map(d => <div key={d} style={{ fontWeight: 'bold', color: '#666', paddingBottom: '10px' }}>{d}</div>)}
+          {diasSemana.map(d => <div key={d} style={{ fontWeight: 'bold', color: '#666', paddingBottom: '10px', textTransform: 'uppercase', fontSize: '13px' }}>{d}</div>)}
           
           {dias.map((dia, index) => {
-            if (!dia) return <div key={`empty-${index}`} style={{ minHeight: '100px', background: '#f9f9f9', borderRadius: '8px' }}></div>;
+            if (!dia) return <div key={`empty-${index}`} style={{ minHeight: '120px', background: '#f9f9f9', border: '1px solid #eee' }}></div>;
             
             const fechaStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
             const citasDelDia = citas.filter(c => c.fecha && c.fecha.startsWith(fechaStr));
+            const esHoy = new Date().toDateString() === new Date(year, month, dia).toDateString();
 
             return (
               <div 
                 key={dia} 
                 onClick={() => abrirDia(fechaStr)}
-                style={{ minHeight: '100px', border: '1px solid #eee', borderRadius: '8px', padding: '10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', background: 'white', transition: '0.2s' }}
+                style={{ minHeight: '120px', border: '1px solid #eee', padding: '10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', background: esHoy ? '#f4faff' : 'white', transition: '0.2s', position: 'relative' }}
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = '#3699ff'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = '#eee'}
               >
-                <span style={{ fontWeight: 'bold', color: '#333', marginBottom: '5px' }}>{dia}</span>
+                <span style={{ fontWeight: esHoy ? 'bold' : 'normal', color: esHoy ? '#3699ff' : '#333', marginBottom: '10px', fontSize: esHoy ? '16px' : '14px' }}>{dia}</span>
                 {citasDelDia.length > 0 && (
-                  <span style={{ background: '#3699ff', color: 'white', fontSize: '12px', padding: '2px 6px', borderRadius: '4px', width: '100%', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ background: '#3699ff', color: 'white', fontSize: '12px', padding: '3px 8px', borderRadius: '4px', width: '90%', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'absolute', bottom: '10px', left: '10px' }}>
                     {citasDelDia.length} cita(s)
                   </span>
                 )}
@@ -158,23 +160,8 @@ function VistaCitas({ usuario, onLogout, onVolver }) {
   const citasSeleccionadas = citas.filter(c => c.fecha && c.fecha.startsWith(diaSeleccionado));
 
   return (
-    <div className="vista-container">
-      <header className="vista-topbar">
-        <div className="topbar-left">
-          <button onClick={onVolver} className="btn-home" style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '16px', color: '#555', fontWeight: 'bold'}}>
-            <FaHome size={20} color="#3699ff"/> Menú Principal
-          </button>
-        </div>
-        <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
-          <div className="vista-user">Bienvenido, <span>{usuario}</span></div>
-          <button onClick={onLogout} className="vista-logout">Salir <FaSignOutAlt /></button>
-        </div>
-      </header>
-
-      <div className="vista-content" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div className="vista-header-row">
-          <h2>Calendario de Citas y Reuniones</h2>
-        </div>
+    <div className="vista-container vista-container-completa" style={{padding: 0, boxShadow: 'none', border: 'none'}}>
+      <div className="vista-content" style={{ maxWidth: '100%', margin: 0 }}>
         
         {renderizarCalendario()}
       </div>
