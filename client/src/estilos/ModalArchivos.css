@@ -1,0 +1,162 @@
+/* Heredamos el diseño del Modal-Card del Formulario, 
+pero le damos un toque específico a las listas de archivos */
+
+.file-section {
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.file-section.tramite {
+  background: rgba(54, 153, 255, 0.05);
+  border: 1px solid rgba(54, 153, 255, 0.3);
+}
+
+.file-section.finalizado {
+  background: rgba(28, 224, 137, 0.05);
+  border: 1px solid rgba(28, 224, 137, 0.3);
+}
+
+.file-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.title-tramite { color: #3699ff; }
+.title-finalizado { color: #1ce089; }
+
+.file-card {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #334155;
+  gap: 15px;
+  transition: all 0.2s;
+}
+
+.file-card:hover {
+  border-color: #475569;
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0; /* Permite que el texto se trunque si es muy largo */
+}
+
+.file-name {
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+  word-break: break-all; /* Rompe el texto largo */
+}
+
+.file-links {
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.file-links a {
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.file-links a:hover { opacity: 0.8; }
+.link-drive { color: #3699ff; }
+.link-drive-final { color: #1ce089; }
+.link-local { color: #3699ff; }
+
+.file-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0; /* Evita que los botones se aplasten */
+}
+
+.btn-action {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  transition: opacity 0.2s;
+}
+
+.btn-action:hover { opacity: 0.8; }
+
+.btn-finalizar { background: #1ce089; color: #000; }
+.btn-desbloquear { background: #f6c23e; color: #000; }
+.btn-eliminar { background: #ef4444; color: #fff; padding: 8px; }
+
+.upload-area {
+  margin-top: 20px;
+}
+
+.upload-area label {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.file-input {
+  width: 100%;
+  padding: 10px;
+  background: #0f172a;
+  border: 1px dashed #475569;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 13px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN (MAGIA PARA MÓVILES)
+   ========================================= */
+@media (max-width: 768px) {
+  .file-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .file-actions {
+    width: 100%;
+    border-top: 1px solid #334155;
+    padding-top: 15px;
+    margin-top: 5px;
+    justify-content: space-between;
+  }
+  
+  .btn-finalizar, .btn-desbloquear {
+    flex: 1; /* Estira el botón principal */
+    justify-content: center;
+  }
+  
+  .btn-eliminar {
+    width: 45px;
+    justify-content: center;
+  }
+}

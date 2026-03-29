@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FaTimes, FaCloudUploadAlt, FaLock, FaFileAlt, FaCheckCircle, FaTrash, FaUnlock } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import './estilos/Formulario.css'; 
+import './estilos/ModalArchivos.css'; /* IMPORTANTE: Nueva hoja de estilos */
 
 export default function ModalArchivos({ expediente, onClose, onGuardarExitoso }) {
   const [nuevosEditables, setNuevosEditables] = useState([]);
@@ -128,76 +129,79 @@ export default function ModalArchivos({ expediente, onClose, onGuardarExitoso })
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-card" style={{ maxWidth: '700px' }}>
+      <div className="modal-card">
         <div className="modal-header">
           <h3>Archivos: Expediente {expediente.nro_expediente}</h3>
           <button className="btn-close-modal" onClick={onGuardarExitoso}><FaTimes /></button>
         </div>
         
-        <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '20px' }}>
-          <div style={{ background: 'rgba(54, 153, 255, 0.05)', padding: '15px', borderRadius: '8px', border: '1px solid #3699ff', marginBottom: '20px' }}>
-            <h4 style={{ color: '#3699ff', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
-              <FaCloudUploadAlt size={20}/> 1. En Trámite
+        <div className="modal-body">
+          
+          {/* SECCIÓN 1: EN TRÁMITE */}
+          <div className="file-section tramite">
+            <h4 className="file-section-title title-tramite">
+              <FaCloudUploadAlt size={22}/> 1. En Trámite
             </h4>
             
             {editables.length > 0 ? editables.map((a, i) => (
-              <div key={i} style={{ background: '#2b2b40', padding: '10px', borderRadius: '5px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ color: '#e0e0e0', display: 'flex', alignItems: 'center', gap: '8px' }}><FaFileAlt color="#3699ff"/> {a.nombre}</span>
-                  <div style={{ marginTop: '5px', fontSize: '12px' }}>
-                    <a href={a.url_drive} target="_blank" rel="noreferrer" style={{ color: '#3699ff', marginRight: '15px' }}>Ver en Drive</a>
+              <div key={i} className="file-card">
+                <div className="file-info">
+                  <span className="file-name"><FaFileAlt color="#3699ff"/> {a.nombre}</span>
+                  <div className="file-links">
+                    <a href={a.url_drive} target="_blank" rel="noreferrer" className="link-drive">Ver en Drive</a>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => handleFinalizar(a)} style={{ background: '#1ce089', color: '#000', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <div className="file-actions">
+                  <button onClick={() => handleFinalizar(a)} className="btn-action btn-finalizar">
                     <FaCheckCircle /> Finalizar
                   </button>
-                  <button onClick={() => handleEliminar(a, 'editables')} style={{ background: '#d33', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Eliminar">
+                  <button onClick={() => handleEliminar(a, 'editables')} className="btn-action btn-eliminar" title="Eliminar">
                     <FaTrash />
                   </button>
                 </div>
               </div>
-            )) : <p style={{ color: '#888', fontSize: '14px' }}>No hay borradores.</p>}
+            )) : <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 15px 0' }}>No hay borradores en este momento.</p>}
 
-            <div style={{ marginTop: '15px' }}>
-              <label style={{ fontSize: '13px', color: '#ccc' }}>+ Subir nuevo borrador:</label>
-              <input id="input-editables" type="file" multiple onChange={(e) => setNuevosEditables(e.target.files)} style={{ width: '100%', padding: '8px', background: '#1b1b29', border: '1px solid #444', color: '#fff' }} />
+            <div className="upload-area">
+              <label>+ Subir nuevo borrador:</label>
+              <input id="input-editables" type="file" multiple onChange={(e) => setNuevosEditables(e.target.files)} className="file-input" />
             </div>
           </div>
 
-          <div style={{ background: 'rgba(28, 224, 137, 0.05)', padding: '15px', borderRadius: '8px', border: '1px solid #1ce089' }}>
-            <h4 style={{ color: '#1ce089', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
-              <FaLock size={18}/> 2. Documentos Finalizados
+          {/* SECCIÓN 2: FINALIZADOS */}
+          <div className="file-section finalizado">
+            <h4 className="file-section-title title-finalizado">
+              <FaLock size={20}/> 2. Documentos Finalizados
             </h4>
             
             {finales.length > 0 ? finales.map((a, i) => (
-              <div key={i} style={{ background: '#2b2b40', padding: '10px', borderRadius: '5px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ color: '#e0e0e0', display: 'flex', alignItems: 'center', gap: '8px' }}><FaFileAlt color="#1ce089"/> {a.nombre}</span>
-                  <div style={{ marginTop: '5px', fontSize: '12px' }}>
-                    <a href={a.url_drive} target="_blank" rel="noreferrer" style={{ color: '#1ce089', marginRight: '15px' }}>Ver en Drive</a>
-                    {a.url_local && <a href={`/api/descargar?ruta=${encodeURIComponent(a.url_local)}`} download target="_blank" rel="noreferrer" style={{ color: '#3699ff' }}>Descargar Copia Local</a>}
+              <div key={i} className="file-card">
+                <div className="file-info">
+                  <span className="file-name"><FaFileAlt color="#1ce089"/> {a.nombre}</span>
+                  <div className="file-links">
+                    <a href={a.url_drive} target="_blank" rel="noreferrer" className="link-drive-final">Ver en Drive</a>
+                    {a.url_local && <a href={`/api/descargar?ruta=${encodeURIComponent(a.url_local)}`} download target="_blank" rel="noreferrer" className="link-local">Descargar Copia Local</a>}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => handleDesmarcarFinal(a)} style={{ background: '#f6c23e', color: '#000', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }} title="Revertir a Borrador">
+                <div className="file-actions">
+                  <button onClick={() => handleDesmarcarFinal(a)} className="btn-action btn-desbloquear" title="Revertir a Borrador">
                     <FaUnlock /> Desbloquear
                   </button>
-                  <button onClick={() => handleEliminar(a, 'finales')} style={{ background: '#d33', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Eliminar">
+                  <button onClick={() => handleEliminar(a, 'finales')} className="btn-action btn-eliminar" title="Eliminar">
                     <FaTrash />
                   </button>
                 </div>
               </div>
-            )) : <p style={{ color: '#888', fontSize: '14px' }}>No hay documentos finales.</p>}
+            )) : <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 15px 0' }}>No hay documentos bloqueados.</p>}
 
-            <div style={{ marginTop: '15px' }}>
-              <label style={{ fontSize: '13px', color: '#ccc' }}>+ Subir directo como Finalizado (se bloqueará automáticamente):</label>
-              <input id="input-finales" type="file" multiple onChange={(e) => setNuevosFinales(e.target.files)} style={{ width: '100%', padding: '8px', background: '#1b1b29', border: '1px solid #444', color: '#fff' }} />
+            <div className="upload-area">
+              <label>+ Subir directo como Finalizado (se bloqueará automáticamente):</label>
+              <input id="input-finales" type="file" multiple onChange={(e) => setNuevosFinales(e.target.files)} className="file-input" />
             </div>
           </div>
         </div>
 
-        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+        <div className="modal-footer">
           <button onClick={onGuardarExitoso} className="btn-cancel">Cerrar</button>
           {(nuevosEditables.length > 0 || nuevosFinales.length > 0) && (
             <button onClick={handleSubirNuevos} className="btn-save">Subir Archivos Nuevos</button>
