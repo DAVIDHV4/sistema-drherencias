@@ -121,7 +121,7 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
               </div>
             </div>
             <div className="row-2">
-              <div className="form-control"><label>Categoría</label><input {...register("categoria")} readOnly style={{backgroundColor: '#2b2b40', color: '#fff', border: '1px solid #444'}} /></div>
+              <div className="form-control"><label>Categoría</label><input {...register("categoria")} readOnly /></div>
               <div className="form-control"><label>Juzgado / Fiscalía</label><input {...register("juzgado")} /></div>
             </div>
           </div>
@@ -149,54 +149,54 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
               <textarea 
                 rows="2" 
                 {...register("materia")}
-                style={{ backgroundColor: '#1b1b29', border: '1px solid #444', color: '#fff', borderRadius: '4px', padding: '8px', width: '100%', resize: 'vertical' }}
+                className="form-textarea"
               ></textarea>
             </div>
             
-            <div className="form-control" style={{ background: 'rgba(54, 153, 255, 0.05)', padding: '15px', borderRadius: '8px', border: '1px dashed #3699ff', marginTop: '10px' }}>
-              <label style={{fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#3699ff'}}>
+            <div className="form-control" style={{ background: 'var(--fondo-principal)', padding: '15px', borderRadius: '8px', border: '1px dashed var(--color-primario)', marginTop: '10px' }}>
+              <label style={{fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--color-primario)'}}>
                 <FaEdit size={18}/> 1. Archivos en Trámite (Borradores, Nube)
               </label>
               <input 
                 type="file" multiple {...register("editables")} 
-                style={{ width: '100%', padding: '8px', background: '#1b1b29', border: '1px solid #444', borderRadius: '4px', color: '#fff', marginBottom: '8px' }}
+                style={{ width: '100%', padding: '8px', background: 'var(--fondo-tarjetas)', border: '1px solid var(--borde-suave)', borderRadius: '4px', color: 'var(--texto-principal)', marginBottom: '8px' }}
               />
-              <small style={{color: '#888', display: 'block', marginBottom: '12px'}}>Solo se guardan en Drive para editarlos en línea.</small>
+              <small style={{color: 'var(--texto-secundario)', display: 'block', marginBottom: '12px'}}>Solo se guardan en Drive para editarlos en línea.</small>
 
               {editablesExistentes.length > 0 && (
-                <div style={{ marginTop: '10px', maxHeight: '120px', overflowY: 'auto', borderTop: '1px solid #444', paddingTop: '10px' }}>
+                <div style={{ marginTop: '10px', maxHeight: '120px', overflowY: 'auto', borderTop: '1px solid var(--borde-suave)', paddingTop: '10px' }}>
                     {editablesExistentes.map((archivo, index) => (
-                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2b2b40', padding: '8px', marginBottom: '5px', borderRadius: '4px', border: '1px solid #3f4254' }}>
+                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--fondo-tarjetas)', padding: '8px', marginBottom: '5px', borderRadius: '4px', border: '1px solid var(--borde-suave)' }}>
                             <div style={{display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden'}}>
-                                <FaFileAlt color="#3699ff"/>
-                                <a href={archivo.url_drive} target="_blank" rel="noopener noreferrer" style={{fontSize: '13px', color: '#e0e0e0', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{archivo.nombre}</a>
+                                <FaFileAlt color="var(--color-primario)"/>
+                                <a href={archivo.url_drive} target="_blank" rel="noopener noreferrer" style={{fontSize: '13px', color: 'var(--texto-principal)', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{archivo.nombre}</a>
                             </div>
-                            <button type="button" onClick={() => borrarEditable(index)} style={{color: '#ff5b5b', border: 'none', background: 'none', cursor: 'pointer', padding: '4px'}}><FaTrash title="Eliminar"/></button>
+                            <button type="button" onClick={() => borrarEditable(index)} style={{color: 'var(--color-peligro)', border: 'none', background: 'none', cursor: 'pointer', padding: '4px'}}><FaTrash title="Eliminar"/></button>
                         </div>
                     ))}
                 </div>
               )}
             </div>
 
-            <div className="form-control" style={{ background: 'rgba(28, 224, 137, 0.05)', padding: '15px', borderRadius: '8px', border: '1px dashed #1ce089', marginTop: '10px' }}>
-              <label style={{fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#1ce089'}}>
+            <div className="form-control" style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '15px', borderRadius: '8px', border: '1px dashed var(--color-exito)', marginTop: '10px' }}>
+              <label style={{fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--color-exito)'}}>
                 <FaLock size={18}/> 2. Documentos Finales (Solo Lectura, Servidor + Nube)
               </label>
               <input 
                 type="file" multiple {...register("finales")} 
-                style={{ width: '100%', padding: '8px', background: '#1b1b29', border: '1px solid #444', borderRadius: '4px', color: '#fff', marginBottom: '8px' }}
+                style={{ width: '100%', padding: '8px', background: 'var(--fondo-tarjetas)', border: '1px solid var(--borde-suave)', borderRadius: '4px', color: 'var(--texto-principal)', marginBottom: '8px' }}
               />
-              <small style={{color: '#888', display: 'block', marginBottom: '12px'}}>Se guardan de forma local en el servidor y una copia en Drive.</small>
+              <small style={{color: 'var(--texto-secundario)', display: 'block', marginBottom: '12px'}}>Se guardan de forma local en el servidor y una copia en Drive.</small>
 
               {finalesExistentes.length > 0 && (
-                <div style={{ marginTop: '10px', maxHeight: '120px', overflowY: 'auto', borderTop: '1px solid #444', paddingTop: '10px' }}>
+                <div style={{ marginTop: '10px', maxHeight: '120px', overflowY: 'auto', borderTop: '1px solid var(--borde-suave)', paddingTop: '10px' }}>
                     {finalesExistentes.map((archivo, index) => (
-                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2b2b40', padding: '8px', marginBottom: '5px', borderRadius: '4px', border: '1px solid #3f4254' }}>
+                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--fondo-tarjetas)', padding: '8px', marginBottom: '5px', borderRadius: '4px', border: '1px solid var(--borde-suave)' }}>
                             <div style={{display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden'}}>
-                                <FaFileAlt color="#1ce089"/>
-                                <a href={`${window.location.origin}${encodeURI(archivo.url_local)}`} target="_blank" rel="noopener noreferrer" style={{fontSize: '13px', color: '#e0e0e0', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{archivo.nombre}</a>
+                                <FaFileAlt color="var(--color-exito)"/>
+                                <a href={`${window.location.origin}${encodeURI(archivo.url_local)}`} target="_blank" rel="noopener noreferrer" style={{fontSize: '13px', color: 'var(--texto-principal)', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{archivo.nombre}</a>
                             </div>
-                            <button type="button" onClick={() => borrarFinal(index)} style={{color: '#ff5b5b', border: 'none', background: 'none', cursor: 'pointer', padding: '4px'}}><FaTrash title="Eliminar"/></button>
+                            <button type="button" onClick={() => borrarFinal(index)} style={{color: 'var(--color-peligro)', border: 'none', background: 'none', cursor: 'pointer', padding: '4px'}}><FaTrash title="Eliminar"/></button>
                         </div>
                     ))}
                 </div>

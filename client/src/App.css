@@ -1,81 +1,97 @@
-/* --- ESTILOS GENERALES --- */
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f3f6f9;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --color-primario: #194276;     
+  --color-primario-hover: #123158; 
+  --color-secundario: #3699ff;   
+  
+  --color-exito: #10B981;        
+  --color-peligro: #EF4444;      
+  --color-alerta: #F59E0B;       
+  
+  --fondo-principal: #F4F7FA;    
+  --fondo-tarjetas: #FFFFFF;     
+  --texto-principal: #1E293B;    
+  --texto-secundario: #64748B;   
+  --borde-suave: #E2E8F0;        
 }
 
-/* --- CONTENEDOR LOGIN (FONDO OSCURO) --- */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  color: var(--texto-principal);
+  background-color: var(--fondo-principal);
+  -webkit-font-smoothing: antialiased;
+}
+
 .login-container {
-  height: 100vh;
-  width: 100vw;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); /* Mismo fondo que el Menú */
+  height: 100vh;
+  background-color: var(--fondo-principal);
 }
 
-/* --- TARJETA DEL LOGIN --- */
 .login-card {
-  background-color: white;
+  background: var(--fondo-tarjetas);
   padding: 40px;
   border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
   width: 100%;
   max-width: 400px;
   text-align: center;
+  border: 1px solid var(--borde-suave);
 }
 
 .login-card h2 {
-  margin-bottom: 30px;
-  color: #1e1e2d;
+  color: var(--color-primario);
+  margin-top: 0;
+  margin-bottom: 25px;
   font-weight: 700;
 }
 
-/* --- INPUTS --- */
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
 .login-card input {
-  width: 100%;
   padding: 12px 15px;
-  margin-bottom: 20px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--borde-suave);
   border-radius: 8px;
-  font-size: 16px;
-  background-color: #f8fafc;
+  font-size: 14px;
   outline: none;
-  transition: border 0.3s;
-  box-sizing: border-box; /* Importante para que no se salga del padding */
+  font-family: inherit;
 }
 
 .login-card input:focus {
-  border-color: #3699ff;
-  background-color: white;
+  border-color: var(--color-secundario);
 }
 
-/* --- BOTÓN --- */
 .login-card button {
-  width: 100%;
   padding: 12px;
-  background-color: #3699ff;
+  background-color: var(--color-primario);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 15px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background-color 0.2s;
+  margin-top: 10px;
 }
 
 .login-card button:hover {
-  background-color: #2563eb;
+  background-color: var(--color-primario-hover);
 }
 
-/* --- MENSAJE DE ERROR --- */
 .error-msg {
-  color: #ef4444;
-  background-color: #fee2e2;
+  color: var(--color-peligro);
+  font-size: 13px;
+  margin-bottom: 15px;
+  background: #fef2f2;
   padding: 10px;
   border-radius: 6px;
-  margin-bottom: 20px;
-  font-size: 14px;
 }

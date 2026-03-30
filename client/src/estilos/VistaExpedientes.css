@@ -1,5 +1,5 @@
 .vista-container-completa {
-  background-color: #ffffff;
+  background-color: var(--fondo-tarjetas);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -10,14 +10,15 @@
   justify-content: space-between;
   align-items: center;
   padding: 25px 30px 20px 30px;
-  border-bottom: 1px solid #eee;
-  background-color: white;
+  border-bottom: 1px solid var(--borde-suave);
+  background-color: var(--fondo-tarjetas);
 }
 
 .vista-header-row-completa h2 {
   margin: 0;
   font-size: 24px;
-  color: #333;
+  color: var(--color-primario);
+  font-weight: 700;
 }
 
 .vista-actions {
@@ -29,11 +30,11 @@
 .vista-search {
   display: flex;
   align-items: center;
-  background-color: #f0f3f5;
+  background-color: var(--fondo-principal);
   padding: 10px 15px;
   border-radius: 8px;
   width: 250px;
-  border: 1px solid #e1e5eb;
+  border: 1px solid var(--borde-suave);
 }
 
 .vista-search input {
@@ -43,39 +44,40 @@
   margin-left: 10px;
   width: 100%;
   font-size: 14px;
-  color: #333;
+  color: var(--texto-principal);
+  font-family: inherit;
 }
 
 .icon-search {
-  color: #999;
+  color: var(--texto-secundario);
 }
 
 .vista-btn-nuevo {
-  background-color: #00c6ff;
-  background: linear-gradient(to right, #3699ff, #00c6ff);
+  background-color: var(--color-primario);
   color: white;
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: opacity 0.2s;
-  box-shadow: 0 2px 4px rgba(54, 153, 255, 0.3);
+  transition: background-color 0.2s;
+  box-shadow: 0 2px 4px rgba(25, 66, 118, 0.2);
+  font-family: inherit;
 }
 
 .vista-btn-nuevo:hover {
-  opacity: 0.9;
+  background-color: var(--color-primario-hover);
 }
 
 .vista-tabs-completa {
   display: flex;
   gap: 10px;
   padding: 15px 30px;
-  background-color: #fdfdfd;
-  border-bottom: 1px solid #eee;
+  background-color: var(--fondo-tarjetas);
+  border-bottom: 1px solid var(--borde-suave);
   overflow-x: auto;
 }
 
@@ -83,26 +85,28 @@
   padding: 8px 16px;
   border: none;
   background: transparent;
-  color: #666;
+  color: var(--texto-secundario);
   font-weight: 600;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
   white-space: nowrap;
+  font-family: inherit;
 }
 
 .v-tab:hover {
-  background-color: #e9ecef;
+  background-color: var(--fondo-principal);
+  color: var(--color-primario);
 }
 
 .v-tab.active {
-  background-color: #3699ff;
+  background-color: var(--color-primario);
   color: white;
 }
 
 .vista-table-card-completa {
   flex: 1;
-  background-color: white;
+  background-color: var(--fondo-tarjetas);
 }
 
 .vista-table-completa {
@@ -112,32 +116,33 @@
 }
 
 .vista-table-completa th {
-  background-color: #f8f9fa;
-  color: #555;
+  background-color: var(--fondo-principal);
+  color: var(--texto-secundario);
   padding: 15px 30px;
   text-align: left;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid var(--borde-suave);
+  font-weight: 700;
 }
 
 .vista-table-completa td {
   padding: 15px 30px;
-  border-bottom: 1px solid #eee;
-  color: #333;
+  border-bottom: 1px solid var(--borde-suave);
+  color: var(--texto-principal);
   font-size: 14px;
   vertical-align: middle;
 }
 
 .vista-table-completa tbody tr:hover {
-  background-color: #f9fbfd;
+  background-color: var(--fondo-principal);
 }
 
 .v-no-data {
   text-align: center !important;
   padding: 40px !important;
-  color: #999 !important;
+  color: var(--texto-secundario) !important;
   font-size: 16px;
 }
 
@@ -145,22 +150,35 @@
   padding: 5px 10px;
   border-radius: 20px;
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 700;
 }
-.badge-estado.en-trámite { background-color: #fff3cd; color: #d32f2f; }
-.badge-estado.concluido { background-color: #e8f5e9; color: #2e7d32; }
+
+.badge-estado.en-trámite { 
+  background-color: #FEF3C7; 
+  color: var(--color-alerta); 
+}
+
+.badge-estado.concluido { 
+  background-color: #D1FAE5; 
+  color: var(--color-exito); 
+}
 
 .v-btn-edit, .v-btn-obs {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 16px;
-  color: #a2a8b5;
+  color: var(--texto-secundario);
   transition: color 0.2s;
 }
 
-.v-btn-edit:hover { color: #3699ff; }
-.v-btn-obs:hover { color: #f0ad4e; }
+.v-btn-edit:hover { 
+  color: var(--color-primario); 
+}
+
+.v-btn-obs:hover { 
+  color: var(--color-alerta); 
+}
 
 @media (max-width: 900px) {
   .vista-header-row-completa {

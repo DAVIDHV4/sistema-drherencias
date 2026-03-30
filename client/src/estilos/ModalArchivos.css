@@ -1,20 +1,104 @@
-/* Heredamos el diseño del Modal-Card del Formulario, 
-pero le damos un toque específico a las listas de archivos */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.modal-card {
+  background: var(--fondo-tarjetas);
+  width: 100%;
+  max-width: 800px;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  border: none;
+  color: var(--texto-principal);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 20px 30px;
+  background-color: var(--color-primario);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 12px 12px 0 0;
+  flex-shrink: 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.btn-close-modal {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #ffffff;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close-modal:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.modal-body {
+  padding: 30px;
+  overflow-y: auto;
+  flex: 1;
+  background: var(--fondo-tarjetas);
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-body::-webkit-scrollbar-track {
+  background: var(--fondo-principal);
+}
+.modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
 
 .file-section {
-  padding: 20px;
-  border-radius: 12px;
+  padding: 25px;
+  border-radius: 10px;
   margin-bottom: 25px;
 }
 
 .file-section.tramite {
-  background: rgba(54, 153, 255, 0.05);
-  border: 1px solid rgba(54, 153, 255, 0.3);
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
 }
 
 .file-section.finalizado {
-  background: rgba(28, 224, 137, 0.05);
-  border: 1px solid rgba(28, 224, 137, 0.3);
+  background: #f0fdf4;
+  border: 1px dashed #bbf7d0;
 }
 
 .file-section-title {
@@ -27,42 +111,49 @@ pero le damos un toque específico a las listas de archivos */
   font-weight: 700;
 }
 
-.title-tramite { color: #3699ff; }
-.title-finalizado { color: #1ce089; }
+.title-tramite {
+  color: var(--color-primario);
+}
+
+.title-finalizado {
+  color: var(--color-exito);
+}
 
 .file-card {
-  background: #1e293b;
-  padding: 15px;
+  background: #ffffff;
+  padding: 16px 20px;
   border-radius: 8px;
   margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid #334155;
+  border: 1px solid #e2e8f0;
   gap: 15px;
   transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .file-card:hover {
-  border-color: #475569;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .file-info {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-width: 0; /* Permite que el texto se trunque si es muy largo */
+  min-width: 0;
 }
 
 .file-name {
-  color: #e2e8f0;
+  color: var(--texto-principal);
   display: flex;
   align-items: center;
   gap: 10px;
   font-weight: 600;
   font-size: 14px;
   margin-bottom: 8px;
-  word-break: break-all; /* Rompe el texto largo */
+  word-break: break-all;
 }
 
 .file-links {
@@ -75,39 +166,78 @@ pero le damos un toque específico a las listas de archivos */
 .file-links a {
   text-decoration: none;
   font-weight: 600;
-  transition: opacity 0.2s;
+  transition: color 0.2s;
 }
 
-.file-links a:hover { opacity: 0.8; }
-.link-drive { color: #3699ff; }
-.link-drive-final { color: #1ce089; }
-.link-local { color: #3699ff; }
+.link-drive {
+  color: var(--color-secundario);
+}
+.link-drive:hover {
+  color: var(--color-primario);
+}
+
+.link-drive-final {
+  color: var(--color-exito);
+}
+.link-drive-final:hover {
+  color: #059669;
+}
+
+.link-local {
+  color: var(--color-secundario);
+}
+.link-local:hover {
+  color: var(--color-primario);
+}
 
 .file-actions {
   display: flex;
   gap: 8px;
   align-items: center;
-  flex-shrink: 0; /* Evita que los botones se aplasten */
+  flex-shrink: 0;
 }
 
 .btn-action {
   border: none;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  font-family: inherit;
 }
 
-.btn-action:hover { opacity: 0.8; }
+.btn-finalizar {
+  background: var(--color-exito);
+  color: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+.btn-finalizar:hover {
+  background: #059669;
+}
 
-.btn-finalizar { background: #1ce089; color: #000; }
-.btn-desbloquear { background: #f6c23e; color: #000; }
-.btn-eliminar { background: #ef4444; color: #fff; padding: 8px; }
+.btn-desbloquear {
+  background: var(--color-alerta);
+  color: white;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+.btn-desbloquear:hover {
+  background: #d97706;
+}
+
+.btn-eliminar {
+  background: #fee2e2;
+  color: var(--color-peligro);
+  padding: 8px 10px;
+}
+.btn-eliminar:hover {
+  background: #fca5a5;
+  color: white;
+}
 
 .upload-area {
   margin-top: 20px;
@@ -115,7 +245,7 @@ pero le damos un toque específico a las listas de archivos */
 
 .upload-area label {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--texto-secundario);
   font-weight: 600;
   display: block;
   margin-bottom: 8px;
@@ -123,40 +253,118 @@ pero le damos un toque específico a las listas de archivos */
 
 .file-input {
   width: 100%;
-  padding: 10px;
-  background: #0f172a;
-  border: 1px dashed #475569;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
-  color: #e2e8f0;
+  color: var(--texto-principal);
   font-size: 13px;
   box-sizing: border-box;
   cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
 }
 
-/* =========================================
-   RESPONSIVE DESIGN (MAGIA PARA MÓVILES)
-   ========================================= */
+.file-input:focus {
+  border-color: var(--color-primario);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(25, 66, 118, 0.1);
+}
+
+.modal-footer {
+  padding: 20px 30px;
+  background: var(--fondo-principal);
+  border-top: 1px solid var(--borde-suave);
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  border-radius: 0 0 12px 12px;
+  flex-shrink: 0;
+}
+
+.btn-cancel {
+  padding: 10px 20px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: var(--texto-secundario);
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-cancel:hover {
+  background: #f1f5f9;
+  color: var(--texto-principal);
+}
+
+.btn-save {
+  padding: 10px 25px;
+  background: var(--color-primario);
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-family: inherit;
+  box-shadow: 0 2px 4px rgba(25, 66, 118, 0.2);
+}
+
+.btn-save:hover {
+  background: var(--color-primario-hover);
+  transform: translateY(-1px);
+}
+
 @media (max-width: 768px) {
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal-card {
+    height: 90vh; 
+    max-height: 90vh;
+    border-radius: 20px 20px 0 0;
+    width: 100vw;
+  }
+  .modal-header {
+    padding: 20px;
+    border-radius: 20px 20px 0 0;
+  }
+  .modal-body {
+    padding: 20px;
+  }
   .file-card {
-    flex-direction: column;
+    flex-direction: column; 
     align-items: flex-start;
   }
-
   .file-actions {
     width: 100%;
-    border-top: 1px solid #334155;
+    border-top: 1px solid var(--borde-suave);
     padding-top: 15px;
     margin-top: 5px;
-    justify-content: space-between;
+    justify-content: space-between; 
   }
-  
   .btn-finalizar, .btn-desbloquear {
-    flex: 1; /* Estira el botón principal */
+    flex: 1; 
     justify-content: center;
   }
-  
   .btn-eliminar {
     width: 45px;
     justify-content: center;
+  }
+  .modal-footer {
+    padding: 20px;
+    flex-direction: column-reverse;
+  }
+  .btn-save,
+  .btn-cancel {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 }
