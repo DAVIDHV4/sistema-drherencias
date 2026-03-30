@@ -34,7 +34,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
 
   useEffect(() => {
     setPagina(1);
-  }, [subCategoria, busqueda]);
+  }, [subCategoria, busqueda, categoriaPrincipal]);
 
   const cargarExpedientes = async () => {
     try {
@@ -48,7 +48,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
 
   useEffect(() => {
     cargarExpedientes();
-  }, [subCategoria, busqueda, pagina]);
+  }, [subCategoria, busqueda, pagina, categoriaPrincipal]);
 
   const handleNuevo = () => { setExpedienteAEditar(null); setMostrarFormulario(true); };
   const handleEditar = (expediente) => { setExpedienteAEditar(expediente); setMostrarFormulario(true); };
@@ -64,7 +64,7 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
       showCancelButton: true,
       confirmButtonText: 'Guardar',
       cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#3699ff'
+      confirmButtonColor: '#194276'
     });
 
     if (text !== undefined) {
@@ -138,12 +138,12 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
                     <td>{exp.abogado_encargado}</td>
                     <td>{exp.juzgado}</td>
                     <td style={{textAlign: 'center'}}>
-                      <button onClick={() => handleVerArchivos(exp)} className="btn-ver-pdf" style={{border:'none', cursor:'pointer', background: '#e9ecef', color:'#333', padding:'5px 10px', borderRadius:'4px', fontWeight:'bold', display: 'inline-flex', alignItems: 'center', gap: '5px'}}>
+                      <button onClick={() => handleVerArchivos(exp)} className="btn-ver-pdf" style={{border:'none', cursor:'pointer', background: 'var(--fondo-principal)', color:'var(--color-primario)', padding:'5px 10px', borderRadius:'4px', fontWeight:'bold', display: 'inline-flex', alignItems: 'center', gap: '5px'}}>
                         <FaPaperclip /> Ver
                       </button>
                     </td>
                     <td style={{textAlign: 'center'}}>
-                      <button onClick={() => handleObservaciones(exp)} className="v-btn-obs" style={{background: 'none', border: 'none', cursor: 'pointer', color: exp.observaciones ? '#3699ff' : '#ccc'}}>
+                      <button onClick={() => handleObservaciones(exp)} className="v-btn-obs" style={{background: 'none', border: 'none', cursor: 'pointer', color: exp.observaciones ? 'var(--color-primario)' : 'var(--texto-secundario)'}}>
                         <FaCommentAlt />
                       </button>
                     </td>
@@ -158,9 +158,9 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px', padding: '0 30px', marginBottom: '30px' }}>
-          <button disabled={pagina === 1} onClick={() => setPagina(pagina - 1)} style={{ padding: '8px 15px', borderRadius: '5px', border: 'none', background: pagina === 1 ? '#ccc' : '#3699ff', color: pagina === 1 ? '#333' : '#fff', cursor: pagina === 1 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>Anterior</button>
-          <span style={{ fontWeight: 'bold', color: '#ccc' }}>Página {pagina} de {totalPaginas}</span>
-          <button disabled={pagina === totalPaginas || totalPaginas === 0} onClick={() => setPagina(pagina + 1)} style={{ padding: '8px 15px', borderRadius: '5px', border: 'none', background: pagina === totalPaginas || totalPaginas === 0 ? '#ccc' : '#3699ff', color: pagina === totalPaginas || totalPaginas === 0 ? '#333' : '#fff', cursor: pagina === totalPaginas || totalPaginas === 0 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>Siguiente</button>
+          <button disabled={pagina === 1} onClick={() => setPagina(pagina - 1)} style={{ padding: '8px 15px', borderRadius: '5px', border: 'none', background: pagina === 1 ? 'var(--borde-suave)' : 'var(--color-primario)', color: pagina === 1 ? 'var(--texto-secundario)' : '#fff', cursor: pagina === 1 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>Anterior</button>
+          <span style={{ fontWeight: 'bold', color: 'var(--texto-secundario)' }}>Página {pagina} de {totalPaginas}</span>
+          <button disabled={pagina === totalPaginas || totalPaginas === 0} onClick={() => setPagina(pagina + 1)} style={{ padding: '8px 15px', borderRadius: '5px', border: 'none', background: pagina === totalPaginas || totalPaginas === 0 ? 'var(--borde-suave)' : 'var(--color-primario)', color: pagina === totalPaginas || totalPaginas === 0 ? 'var(--texto-secundario)' : '#fff', cursor: pagina === totalPaginas || totalPaginas === 0 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>Siguiente</button>
         </div>
 
       </div>
