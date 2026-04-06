@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import VistaExpedientes from './VistaExpedientes'; 
 import VistaCitas from './VistaCitas';
-import { FaFolderOpen, FaCalendarAlt, FaSignOutAlt, FaSearch, FaUserCircle, FaChevronDown, FaChevronRight, FaLink, FaBars } from 'react-icons/fa';
+import VistaReportes from './VistaReportes';
+import { FaFolderOpen, FaCalendarAlt, FaSignOutAlt, FaSearch, FaUserCircle, FaChevronDown, FaChevronRight, FaLink, FaBars, FaFileExcel } from 'react-icons/fa';
 import './App.css'; 
 import './estilos/Layout.css'; 
 
@@ -109,7 +110,6 @@ function App() {
       const dataArray = res.data.data ? res.data.data : res.data;
       setResultadosGlobales(Array.isArray(dataArray) ? dataArray : []);
     } catch (error) {
-      console.error(error);
       setResultadosGlobales([]);
     }
   };
@@ -210,6 +210,14 @@ function App() {
           >
             <FaCalendarAlt size={20} /> Calendario de Citas
           </button>
+          
+          <button 
+            className={vistaActual === 'reportes' ? 'active' : ''} 
+            onClick={() => cambiarVista('reportes')}
+          >
+            <FaFileExcel size={20} /> Reporte Horarios
+          </button>
+
         </nav>
       </aside>
 
@@ -334,6 +342,10 @@ function App() {
               onLogout={handleLogout} 
               onVolver={() => cambiarVista('tabla', 'Búsqueda General')} 
             />
+          )}
+
+          {vistaActual === 'reportes' && (
+            <VistaReportes />
           )}
 
         </section>

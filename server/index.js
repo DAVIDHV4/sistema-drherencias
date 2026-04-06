@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
 const { google } = require('googleapis');
+const ExcelJS = require('exceljs');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -83,7 +84,7 @@ app.post('/api/login', async (req, res) => {
         if (result.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
         const esCorrecta = await bcrypt.compare(password, result.rows[0].password);
         if (esCorrecta) res.json({ mensaje: "Login exitoso", usuario: result.rows[0].usuario }); else res.status(401).json({ error: "Error" });
-    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno" }); }
+    } catch (err) { res.status(500).json({ error: "Error interno" }); }
 });
 
 app.get('/api/expedientes', async (req, res) => {
@@ -107,7 +108,7 @@ app.get('/api/expedientes', async (req, res) => {
         const result = await pool.query(sql, queryValues);
 
         res.json({ data: result.rows, total: total, paginaActual: parseInt(page), totalPaginas: Math.ceil(total / limit) });
-    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno" }); }
+    } catch (err) { res.status(500).json({ error: "Error interno" }); }
 });
 
 app.get('/api/expedientes/buscar-global', async (req, res) => {
@@ -119,7 +120,6 @@ app.get('/api/expedientes/buscar-global', async (req, res) => {
         const result = await pool.query(sql, [searchParam]);
         res.json(result.rows);
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Error interno del servidor" });
     }
 });
@@ -163,7 +163,7 @@ app.post('/api/expedientes', upload.fields([{ name: 'editables' }, { name: 'fina
             await pool.query(`UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3`, [JSON.stringify(listaEditables), JSON.stringify(listaFinales), nuevoId]);
         }
         res.json({ id: nuevoId });
-    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno" }); }
+    } catch (err) { res.status(500).json({ error: "Error interno" }); }
 });
 
 app.put('/api/expedientes/:id', upload.fields([{ name: 'editables' }, { name: 'finales' }]), async (req, res) => {
@@ -205,7 +205,7 @@ app.put('/api/expedientes/:id', upload.fields([{ name: 'editables' }, { name: 'f
         }
 
         res.json((await pool.query(`UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8, estado=$9, observaciones=$10, archivos_editables=$11, archivos_finales=$12 WHERE id=$13 RETURNING *`, [data.tipo_expediente, data.solicitante, data.dni_solicitante, data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.nro_expediente, data.estado, data.observaciones, JSON.stringify(listaEditables), JSON.stringify(listaFinales), id])).rows[0]);
-    } catch (err) { console.error("🔥 ERROR EN PUT:", err); res.status(500).json({ error: "Error interno del servidor" }); }
+    } catch (err) { res.status(500).json({ error: "Error interno del servidor" }); }
 });
 
 app.post('/api/expedientes/:id/archivos-rapidos', upload.fields([{ name: 'editables' }, { name: 'finales' }]), async (req, res) => {
@@ -243,7 +243,7 @@ app.post('/api/expedientes/:id/archivos-rapidos', upload.fields([{ name: 'editab
 
         await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(listaEditables), JSON.stringify(listaFinales), id]);
         res.json({ success: true });
-    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno" }); }
+    } catch (err) { res.status(500).json({ error: "Error interno" }); }
 });
 
 app.put('/api/expedientes/:id/marcar-final', async (req, res) => {
@@ -277,7 +277,7 @@ app.put('/api/expedientes/:id/marcar-final', async (req, res) => {
             await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
         }
         res.json({ success: true });
-    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno" }); }
+    } catch (err) { res.status(500).json({ error: "Error interno" }); }
 });
 
 app.put('/api/expedientes/:id/desmarcar-final', async (req, res) => {
@@ -305,7 +305,7 @@ app.put('/api/expedientes/:id/desmarcar-final', async (req, res) => {
             await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
         }
         res.json({ success: true });
-    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno" }); }
+    } catch (err) { res.status(500).json({ error: "Error interno" }); }
 });
 
 app.put('/api/expedientes/:id/eliminar-archivo', async (req, res) => {
@@ -326,7 +326,7 @@ app.put('/api/expedientes/:id/eliminar-archivo', async (req, res) => {
 
         await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
         res.json({ success: true });
-    } catch (err) { console.error(err); res.status(500).json({ error: "Error interno" }); }
+    } catch (err) { res.status(500).json({ error: "Error interno" }); }
 });
 
 app.get('/api/descargar', async (req, res) => {
@@ -338,7 +338,7 @@ app.get('/api/descargar', async (req, res) => {
         if (!rutaFisica.startsWith(__dirname)) return res.status(403).json({ error: "Acceso denegado" });
         if (!fs.existsSync(rutaFisica)) return res.status(404).json({ error: "El archivo no existe" });
         res.download(rutaFisica);
-    } catch (error) { console.error(error); res.status(500).json({ error: "Error interno" }); }
+    } catch (error) { res.status(500).json({ error: "Error interno" }); }
 });
 
 app.get('/api/citas', async (req, res) => {
@@ -346,7 +346,6 @@ app.get('/api/citas', async (req, res) => {
         const result = await pool.query('SELECT * FROM citas ORDER BY fecha DESC, hora DESC');
         res.json(result.rows);
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Error interno" });
     }
 });
@@ -396,7 +395,6 @@ app.post('/api/citas', async (req, res) => {
 
         res.json(newCita.rows[0]);
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Error al crear la cita" });
     }
 });
@@ -433,7 +431,6 @@ app.put('/api/citas/:id', async (req, res) => {
         );
         res.json(result.rows[0]);
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Error interno" });
     }
 });
@@ -455,8 +452,123 @@ app.delete('/api/citas/:id', async (req, res) => {
         await pool.query('DELETE FROM citas WHERE id=$1', [id]);
         res.json({ success: true });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Error interno" });
+    }
+});
+
+app.get('/api/reportes/asistencias', async (req, res) => {
+    try {
+        const { fechaInicio, fechaFin } = req.query;
+        if (!fechaInicio || !fechaFin) {
+            return res.status(400).json({ error: 'Faltan fechas' });
+        }
+
+        const start = new Date(fechaInicio);
+        const end = new Date(fechaFin);
+        const fechasRango = [];
+        
+        let curr = new Date(start.getTime() + start.getTimezoneOffset() * 60000); 
+        const endAdjusted = new Date(end.getTime() + end.getTimezoneOffset() * 60000);
+
+        while (curr <= endAdjusted) {
+            fechasRango.push(curr.toISOString().split('T')[0]);
+            curr.setDate(curr.getDate() + 1);
+        }
+
+        const query = `
+            SELECT 
+                u.id AS empleado_id,
+                u.nombres,
+                u.apellido_paterno,
+                u.apellido_materno,
+                u.nombre AS departamento,
+                a.fecha_hora
+            FROM asistencias a
+            INNER JOIN usuarios u ON a.empleado_id = u.id
+            WHERE DATE(a.fecha_hora) >= $1 AND DATE(a.fecha_hora) <= $2
+            ORDER BY u.id, a.fecha_hora ASC
+        `;
+        const { rows } = await pool.query(query, [fechaInicio, fechaFin]);
+
+        const reporteData = {};
+
+        rows.forEach(row => {
+            const id = row.empleado_id;
+            if (!reporteData[id]) {
+                reporteData[id] = {
+                    id: id,
+                    nombre: `${row.apellido_paterno || ''} ${row.apellido_materno || ''} ${row.nombres || ''}`.trim().toUpperCase(),
+                    departamento: row.departamento || 'Clinica',
+                    marcaciones: {}
+                };
+            }
+
+            const dateObj = new Date(row.fecha_hora);
+            const dateStr = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            
+            const timeStr = dateObj.toLocaleTimeString('en-GB', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                timeZone: 'America/Lima' 
+            });
+
+            if (!reporteData[id].marcaciones[dateStr]) {
+                reporteData[id].marcaciones[dateStr] = [];
+            }
+            reporteData[id].marcaciones[dateStr].push(timeStr);
+        });
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Asistencias');
+
+        const columnasExcel = [
+            { header: 'Employee ID', key: 'id', width: 15 },
+            { header: 'Name', key: 'nombre', width: 40 },
+            { header: 'Department', key: 'departamento', width: 20 }
+        ];
+
+        fechasRango.forEach(fechaStr => {
+            const dia = fechaStr.split('-')[2]; 
+            columnasExcel.push({ header: dia, key: fechaStr, width: 12 });
+        });
+
+        worksheet.columns = columnasExcel;
+
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF194276' } }; 
+        worksheet.getRow(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        Object.values(reporteData).forEach(emp => {
+            const fila = {
+                id: emp.id,
+                nombre: emp.nombre,
+                departamento: emp.departamento
+            };
+
+            fechasRango.forEach(fechaStr => {
+                if (emp.marcaciones[fechaStr]) {
+                    fila[fechaStr] = emp.marcaciones[fechaStr].join('\n');
+                } else {
+                    fila[fechaStr] = ''; 
+                }
+            });
+
+            const filaAgregada = worksheet.addRow(fila);
+
+            filaAgregada.eachCell({ includeEmpty: true }, (cell) => {
+                cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+            });
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=Reporte_Asistencias_${fechaInicio}_al_${fechaFin}.xlsx`);
+
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (error) {
+        console.error("Error en reporte:", error);
+        res.status(500).json({ error: 'Error al generar el Excel' });
     }
 });
 
