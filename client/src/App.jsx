@@ -3,12 +3,14 @@ import axios from 'axios';
 import VistaExpedientes from './VistaExpedientes'; 
 import VistaCitas from './VistaCitas';
 import VistaReportes from './VistaReportes';
-import { FaFolderOpen, FaCalendarAlt, FaSignOutAlt, FaSearch, FaUserCircle, FaChevronDown, FaChevronRight, FaLink, FaBars, FaFileExcel } from 'react-icons/fa';
+import VistaUsuarios from './VistaUsuarios';
+import { FaFolderOpen, FaCalendarAlt, FaSignOutAlt, FaSearch, FaUserCircle, FaChevronDown, FaChevronRight, FaLink, FaBars, FaFileExcel, FaUsers } from 'react-icons/fa';
 import './App.css'; 
 import './estilos/Layout.css'; 
 
 function App() {
   const [usuario, setUsuario] = useState(null);
+  const [rolUsuario, setRolUsuario] = useState(null);
   const [vistaActual, setVistaActual] = useState('tabla'); 
   const [opcionSeleccionada, setOpcionSeleccionada] = useState("Búsqueda General");
   const [filtroBuscador, setFiltroBuscador] = useState("");
@@ -26,8 +28,11 @@ function App() {
 
   useEffect(() => {
     const usuarioGuardado = localStorage.getItem('usuario_sistema');
+    const rolGuardado = localStorage.getItem('rol_sistema');
+    
     if (usuarioGuardado) {
       setUsuario(usuarioGuardado);
+      setRolUsuario(rolGuardado || 'TRABAJADOR');
     }
     
     const handleResize = () => {
@@ -77,8 +82,14 @@ function App() {
     try {
       const res = await axios.post('/api/login', { usuario: username.toUpperCase(), password });
       if (res.data.usuario) {
+        const rolAsignado = res.data.rol ? res.data.rol.toUpperCase() : 'TRABAJADOR';
+        
         setUsuario(res.data.usuario);
+        setRolUsuario(rolAsignado);
+        
         localStorage.setItem('usuario_sistema', res.data.usuario);
+        localStorage.setItem('rol_sistema', rolAsignado);
+        
         cambiarVista('tabla', 'Búsqueda General');
         setError("");
       }
@@ -89,7 +100,9 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('usuario_sistema');
+    localStorage.removeItem('rol_sistema');
     setUsuario(null);
+    setRolUsuario(null);
     setFiltroBuscador("");
     setSubCategoriaSeleccionada("");
     setUsername("");
@@ -211,12 +224,23 @@ function App() {
             <FaCalendarAlt size={20} /> Calendario de Citas
           </button>
           
-          <button 
-            className={vistaActual === 'reportes' ? 'active' : ''} 
-            onClick={() => cambiarVista('reportes')}
-          >
-            <FaFileExcel size={20} /> Reporte Horarios
-          </button>
+          {rolUsuario === 'ADMINISTRADOR' && (
+            <>
+              <button 
+                className={vistaActual === 'reportes' ? 'active' : ''} 
+                onClick={() => cambiarVista('reportes')}
+              >
+                <FaFileExcel size={20} /> Reporte Horarios
+              </button>
+
+              <button 
+                className={vistaActual === 'usuarios' ? 'active' : ''} 
+                onClick={() => cambiarVista('usuarios')}
+              >
+                <FaUsers size={20} /> Personal y Usuarios
+              </button>
+            </>
+          )}
 
         </nav>
       </aside>
@@ -254,7 +278,10 @@ function App() {
           <div className="topbar-user">
             <div className="topbar-user-info">
               <FaUserCircle size={24} color="#3699ff" />
-              <span>{usuario}</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontWeight: 'bold' }}>{usuario}</span>
+                <span style={{ fontSize: '11px', color: '#888' }}>{rolUsuario}</span>
+              </div>
             </div>
             <button onClick={handleLogout} className="btn-logout">
               <FaSignOutAlt/> Salir
@@ -344,8 +371,12 @@ function App() {
             />
           )}
 
-          {vistaActual === 'reportes' && (
+          {rolUsuario === 'ADMINISTRADOR' && vistaActual === 'reportes' && (
             <VistaReportes />
+          )}
+
+          {rolUsuario === 'ADMINISTRADOR' && vistaActual === 'usuarios' && (
+            <VistaUsuarios />
           )}
 
         </section>

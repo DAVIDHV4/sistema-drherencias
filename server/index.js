@@ -78,13 +78,25 @@ const parseLista = (val) => {
 };
 
 app.post('/api/login', async (req, res) => {
-    const { usuario, password } = req.body;
     try {
-        const result = await pool.query('SELECT * FROM usuarios WHERE usuario = $1', [usuario]);
-        if (result.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
-        const esCorrecta = await bcrypt.compare(password, result.rows[0].password);
-        if (esCorrecta) res.json({ mensaje: "Login exitoso", usuario: result.rows[0].usuario }); else res.status(401).json({ error: "Error" });
-    } catch (err) { res.status(500).json({ error: "Error interno" }); }
+        const { usuario, password } = req.body;
+        
+        const { rows } = await pool.query('SELECT id, usuario, password, nombre FROM usuarios WHERE usuario = $1', [usuario]);
+        
+        if (rows.length === 0) return res.status(401).json({ error: 'Usuario no existe' });
+
+        const user = rows[0];
+        const validPassword = await bcrypt.compare(password, user.password);
+        
+        if (!validPassword) return res.status(401).json({ error: 'Contraseña incorrecta' });
+        res.json({ 
+            usuario: user.usuario, 
+            rol: user.nombre 
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: 'Error en el servidor' });
+    }
 });
 
 app.get('/api/expedientes', async (req, res) => {
@@ -570,6 +582,64 @@ app.get('/api/reportes/asistencias', async (req, res) => {
         console.error("Error en reporte:", error);
         res.status(500).json({ error: 'Error al generar el Excel' });
     }
+});
+
+app.get('/api/usuarios', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, usuario, nombre, dni, nombres, apellido_paterno, apellido_materno, fecha_creacion FROM usuarios ORDER BY id ASC');
+        res.json(result.rows);
+    } catch (error) { res.status(500).json({ error: "Error interno al obtener usuarios" }); }
+});
+
+app.post('/api/usuarios', async (req, res) => {
+    try {
+        const { usuario, password, nombre, dni, nombres, apellido_paterno, apellido_materno } = req.body;
+        
+        const userExist = await pool.query('SELECT id FROM usuarios WHERE usuario = $1 OR dni = $2', [usuario, dni]);
+        if (userExist.rows.length > 0) return res.status(400).json({ error: "El nombre de usuario o DNI ya está registrado." });
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const result = await pool.query(
+            `INSERT INTO usuarios (usuario, password, nombre, fecha_creacion, dni, nombres, apellido_paterno, apellido_materno)
+             VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5, $6, $7) RETURNING id`,
+            [usuario.toUpperCase(), hashedPassword, nombre, dni, nombres.toUpperCase(), apellido_paterno.toUpperCase(), apellido_materno.toUpperCase()]
+        );
+        res.json({ id: result.rows[0].id, success: true });
+    } catch (error) { res.status(500).json({ error: "Error interno al crear usuario" }); }
+});
+
+app.put('/api/usuarios/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { usuario, password, nombre, dni, nombres, apellido_paterno, apellido_materno } = req.body;
+
+        const userExist = await pool.query('SELECT id FROM usuarios WHERE (usuario = $1 OR dni = $2) AND id <> $3', [usuario, dni, id]);
+        if (userExist.rows.length > 0) return res.status(400).json({ error: "El nombre de usuario o DNI ya está en uso." });
+
+        if (password && password.trim() !== "") {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await pool.query(
+                `UPDATE usuarios SET usuario=$1, password=$2, nombre=$3, dni=$4, nombres=$5, apellido_paterno=$6, apellido_materno=$7 WHERE id=$8`,
+                [usuario.toUpperCase(), hashedPassword, nombre, dni, nombres.toUpperCase(), apellido_paterno.toUpperCase(), apellido_materno.toUpperCase(), id]
+            );
+        } else {
+            await pool.query(
+                `UPDATE usuarios SET usuario=$1, nombre=$2, dni=$3, nombres=$4, apellido_paterno=$5, apellido_materno=$6 WHERE id=$7`,
+                [usuario.toUpperCase(), nombre, dni, nombres.toUpperCase(), apellido_paterno.toUpperCase(), apellido_materno.toUpperCase(), id]
+            );
+        }
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: "Error interno al editar usuario" }); }
+});
+
+app.delete('/api/usuarios/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (id === '1') return res.status(403).json({ error: "No se puede eliminar al administrador." });
+        await pool.query('DELETE FROM usuarios WHERE id=$1', [id]);
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: "Error interno al eliminar usuario" }); }
 });
 
 app.use((req, res) => { res.sendFile(path.join(frontendPath, 'index.html')); });
