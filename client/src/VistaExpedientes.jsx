@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FaPlus, FaEdit, FaSearch, FaCommentAlt, FaPaperclip } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaCommentAlt, FaPaperclip } from 'react-icons/fa';
 import FormularioExpediente from './FormularioExpediente';
 import ModalArchivos from './ModalArchivos';
 import Swal from 'sweetalert2';
@@ -78,8 +78,18 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
     }
   };
 
-  const handleVerArchivos = (exp) => {
-      setExpedienteArchivos(exp);
+  const handleVerArchivos = async (exp) => {
+    try {
+      await axios.post('/api/auditoria', {
+        modulo: 'EXPEDIENTES',
+        accion: 'VER',
+        registro_afectado: exp.nro_expediente,
+        detalle: `El usuario abrió el visor de archivos del expediente.`
+      });
+    } catch (e) {
+      console.error("No se pudo auditar la vista");
+    }
+    setExpedienteArchivos(exp);
   };
 
   return (
@@ -121,15 +131,19 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
                 <th>JUZGADO</th>
                 <th style={{textAlign: 'center'}}>ARCHIVOS</th>
                 <th style={{textAlign: 'center'}}>OBS.</th>
-                <th style={{textAlign: 'right'}}>ACCIONES</th>
               </tr>
             </thead>
             <tbody>
               {expedientes.length === 0 ? (
-                <tr><td colSpan="10" className="v-no-data">No hay expedientes registrados.</td></tr>
+                <tr><td colSpan="9" className="v-no-data">No hay expedientes registrados.</td></tr>
               ) : (
                 expedientes.map((exp) => (
-                  <tr key={exp.id}>
+                  <tr 
+                    key={exp.id} 
+                    onClick={() => handleEditar(exp)} 
+                    style={{ cursor: 'pointer' }}
+                    title="Haz clic para editar este expediente"
+                  >
                     <td>{exp.id}</td>
                     <td style={{fontWeight: 'bold'}}>{exp.nro_expediente}</td>
                     <td><span className={`badge-estado ${exp.estado?.toLowerCase().replace(/\s+/g, '-')}`}>{exp.estado || 'En Trámite'}</span></td>
@@ -138,17 +152,28 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
                     <td>{exp.abogado_encargado}</td>
                     <td>{exp.juzgado}</td>
                     <td style={{textAlign: 'center'}}>
-                      <button onClick={() => handleVerArchivos(exp)} className="btn-ver-pdf" style={{border:'none', cursor:'pointer', background: 'var(--fondo-principal)', color:'var(--color-primario)', padding:'5px 10px', borderRadius:'4px', fontWeight:'bold', display: 'inline-flex', alignItems: 'center', gap: '5px'}}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleVerArchivos(exp);
+                        }} 
+                        className="btn-ver-pdf" 
+                        style={{border:'none', cursor:'pointer', background: 'var(--fondo-principal)', color:'var(--color-primario)', padding:'5px 10px', borderRadius:'4px', fontWeight:'bold', display: 'inline-flex', alignItems: 'center', gap: '5px'}}
+                      >
                         <FaPaperclip /> Ver
                       </button>
                     </td>
                     <td style={{textAlign: 'center'}}>
-                      <button onClick={() => handleObservaciones(exp)} className="v-btn-obs" style={{background: 'none', border: 'none', cursor: 'pointer', color: exp.observaciones ? 'var(--color-primario)' : 'var(--texto-secundario)'}}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleObservaciones(exp);
+                        }} 
+                        className="v-btn-obs" 
+                        style={{background: 'none', border: 'none', cursor: 'pointer', color: exp.observaciones ? 'var(--color-primario)' : 'var(--texto-secundario)'}}
+                      >
                         <FaCommentAlt />
                       </button>
-                    </td>
-                    <td style={{textAlign: 'right'}}>
-                      <button onClick={() => handleEditar(exp)} className="v-btn-edit"><FaEdit /></button>
                     </td>
                   </tr>
                 ))

@@ -4,7 +4,8 @@ import VistaExpedientes from './VistaExpedientes';
 import VistaCitas from './VistaCitas';
 import VistaReportes from './VistaReportes';
 import VistaUsuarios from './VistaUsuarios';
-import { FaFolderOpen, FaCalendarAlt, FaSignOutAlt, FaSearch, FaUserCircle, FaChevronDown, FaChevronRight, FaLink, FaBars, FaFileExcel, FaUsers } from 'react-icons/fa';
+import VistaAuditoria from './VistaAuditoria';
+import { FaFolderOpen, FaCalendarAlt, FaSignOutAlt, FaSearch, FaUserCircle, FaChevronDown, FaChevronRight, FaLink, FaBars, FaFileExcel, FaUsers, FaHistory } from 'react-icons/fa';
 import './App.css'; 
 import './estilos/Layout.css'; 
 
@@ -27,6 +28,14 @@ function App() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const requestInterceptor = axios.interceptors.request.use(config => {
+      const user = localStorage.getItem('usuario_sistema');
+      const id = localStorage.getItem('id_sistema');
+      if (user) config.headers['x-usuario'] = user;
+      if (id) config.headers['x-usuario-id'] = id;
+      return config;
+    });
+
     const usuarioGuardado = localStorage.getItem('usuario_sistema');
     const rolGuardado = localStorage.getItem('rol_sistema');
     
@@ -62,6 +71,7 @@ function App() {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('popstate', handlePopState);
+      axios.interceptors.request.eject(requestInterceptor);
     };
   }, []);
 
@@ -89,6 +99,7 @@ function App() {
         
         localStorage.setItem('usuario_sistema', res.data.usuario);
         localStorage.setItem('rol_sistema', rolAsignado);
+        localStorage.setItem('id_sistema', res.data.id); 
         
         cambiarVista('tabla', 'Búsqueda General');
         setError("");
@@ -101,6 +112,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('usuario_sistema');
     localStorage.removeItem('rol_sistema');
+    localStorage.removeItem('id_sistema'); 
     setUsuario(null);
     setRolUsuario(null);
     setFiltroBuscador("");
@@ -159,111 +171,54 @@ function App() {
 
   return (
     <div className="app-layout">
-      
       <div className={`sidebar-overlay ${sidebarAbierto ? 'abierto' : ''}`} onClick={() => setSidebarAbierto(false)}></div>
-
       <aside className={`sidebar ${sidebarAbierto ? '' : 'cerrado'}`}>
         <div className="sidebar-logo">Dr. Herencias</div>
         <nav className="sidebar-nav">
-          
-          <button 
-            className={`menu-parent ${vistaActual === 'tabla' ? 'active-parent' : ''}`}
-            onClick={() => setMenuExpedientesAbierto(!menuExpedientesAbierto)}
-          >
+          <button className={`menu-parent ${vistaActual === 'tabla' ? 'active-parent' : ''}`} onClick={() => setMenuExpedientesAbierto(!menuExpedientesAbierto)}>
             <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
               <FaFolderOpen size={20} /> Expedientes
             </div>
             {menuExpedientesAbierto ? <FaChevronDown size={14} /> : <FaChevronRight size={14} />}
           </button>
-
           {menuExpedientesAbierto && (
             <div className="sub-menu">
-              <button 
-                className={vistaActual === 'tabla' && opcionSeleccionada === "Búsqueda General" ? 'active' : ''} 
-                onClick={() => handleOpcionMenu("Búsqueda General")}
-              >
-                Búsqueda General
-              </button>
-              <button 
-                className={vistaActual === 'tabla' && opcionSeleccionada === "Expediente Administrativo" ? 'active' : ''} 
-                onClick={() => handleOpcionMenu("Expediente Administrativo")}
-              >
-                Administrativos
-              </button>
-              <button 
-                className={vistaActual === 'tabla' && opcionSeleccionada === "Expediente Notarial" ? 'active' : ''} 
-                onClick={() => handleOpcionMenu("Expediente Notarial")}
-              >
-                Notariales
-              </button>
-              <button 
-                className={vistaActual === 'tabla' && opcionSeleccionada === "Expediente Judicial" ? 'active' : ''} 
-                onClick={() => handleOpcionMenu("Expediente Judicial")}
-              >
-                Judiciales
-              </button>
-              <button 
-                className={vistaActual === 'tabla' && opcionSeleccionada === "Expediente por encargo" ? 'active' : ''} 
-                onClick={() => handleOpcionMenu("Expediente por encargo")}
-              >
-                Por Encargo
-              </button>
-              <button 
-                className={vistaActual === 'tabla' && opcionSeleccionada === "Expedientes archivados" ? 'active' : ''} 
-                onClick={() => handleOpcionMenu("Expedientes archivados")}
-              >
-                Archivados
-              </button>
+              <button className={vistaActual === 'tabla' && opcionSeleccionada === "Búsqueda General" ? 'active' : ''} onClick={() => handleOpcionMenu("Búsqueda General")}>Búsqueda General</button>
+              <button className={vistaActual === 'tabla' && opcionSeleccionada === "Expediente Administrativo" ? 'active' : ''} onClick={() => handleOpcionMenu("Expediente Administrativo")}>Administrativos</button>
+              <button className={vistaActual === 'tabla' && opcionSeleccionada === "Expediente Notarial" ? 'active' : ''} onClick={() => handleOpcionMenu("Expediente Notarial")}>Notariales</button>
+              <button className={vistaActual === 'tabla' && opcionSeleccionada === "Expediente Judicial" ? 'active' : ''} onClick={() => handleOpcionMenu("Expediente Judicial")}>Judiciales</button>
+              <button className={vistaActual === 'tabla' && opcionSeleccionada === "Expediente por encargo" ? 'active' : ''} onClick={() => handleOpcionMenu("Expediente por encargo")}>Por Encargo</button>
+              <button className={vistaActual === 'tabla' && opcionSeleccionada === "Expedientes archivados" ? 'active' : ''} onClick={() => handleOpcionMenu("Expedientes archivados")}>Archivados</button>
             </div>
           )}
-          
-          <button 
-            className={vistaActual === 'citas' ? 'active' : ''} 
-            onClick={() => cambiarVista('citas')}
-          >
+          <button className={vistaActual === 'citas' ? 'active' : ''} onClick={() => cambiarVista('citas')}>
             <FaCalendarAlt size={20} /> Calendario de Citas
           </button>
-          
           {rolUsuario === 'ADMINISTRADOR' && (
             <>
-              <button 
-                className={vistaActual === 'reportes' ? 'active' : ''} 
-                onClick={() => cambiarVista('reportes')}
-              >
+              <button className={vistaActual === 'reportes' ? 'active' : ''} onClick={() => cambiarVista('reportes')}>
                 <FaFileExcel size={20} /> Reporte Horarios
               </button>
-
-              <button 
-                className={vistaActual === 'usuarios' ? 'active' : ''} 
-                onClick={() => cambiarVista('usuarios')}
-              >
+              <button className={vistaActual === 'usuarios' ? 'active' : ''} onClick={() => cambiarVista('usuarios')}>
                 <FaUsers size={20} /> Personal y Usuarios
+              </button>
+              <button className={vistaActual === 'auditoria' ? 'active' : ''} onClick={() => cambiarVista('auditoria')}>
+                <FaHistory size={20} /> Control de Expedientes
               </button>
             </>
           )}
-
         </nav>
       </aside>
-
       <main className={`main-content ${sidebarAbierto && window.innerWidth <= 900 ? 'content-blurred' : ''}`}>
-        
         <header className="topbar">
           <div className="topbar-left">
-            <button 
-              className="hamburger-btn"
-              onClick={() => setSidebarAbierto(!sidebarAbierto)}
-            >
+            <button className="hamburger-btn" onClick={() => setSidebarAbierto(!sidebarAbierto)}>
               <FaBars size={22} />
             </button>
-
             <div className="tools-container">
-              <button 
-                onClick={() => setMostrarEnlaces(!mostrarEnlaces)}
-                className="btn-herramientas"
-              >
+              <button onClick={() => setMostrarEnlaces(!mostrarEnlaces)} className="btn-herramientas">
                 <FaLink color="#3699ff" /> Herramientas <FaChevronDown size={12} />
               </button>
-              
               {mostrarEnlaces && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '15px', background: 'white', border: '1px solid #eee', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', padding: '5px 0', minWidth: '220px', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
                   <a href="https://sigueloplus.sunarp.gob.pe/siguelo/" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', color: '#333', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f5f5f5', fontWeight: '500' }}>Síguélo Pluss</a>
@@ -274,7 +229,6 @@ function App() {
               )}
             </div>
           </div>
-
           <div className="topbar-user">
             <div className="topbar-user-info">
               <FaUserCircle size={24} color="#3699ff" />
@@ -288,9 +242,7 @@ function App() {
             </button>
           </div>
         </header>
-
         <section className="view-area">
-          
           {vistaActual === 'tabla' && opcionSeleccionada === "Búsqueda General" && (
             <div className="vista-container vista-container-completa">
               <div className="vista-content">
@@ -299,17 +251,11 @@ function App() {
                   <div className="vista-actions">
                     <form className="vista-search" onSubmit={handleBuscarGlobal}>
                       <FaSearch className="icon-search"/>
-                      <input 
-                        type="text" 
-                        placeholder="DNI o Expediente..." 
-                        value={busquedaGlobal}
-                        onChange={(e) => setBusquedaGlobal(e.target.value)}
-                      />
+                      <input type="text" placeholder="DNI o Expediente..." value={busquedaGlobal} onChange={(e) => setBusquedaGlobal(e.target.value)} />
                       <button type="submit" style={{ display: 'none' }}></button>
                     </form>
                   </div>
                 </div>
-
                 <div style={{ padding: '30px' }}>
                   {resultadosGlobales.length === 0 ? (
                     <div style={{ background: '#fdfdfd', padding: '60px 20px', borderRadius: '12px', textAlign: 'center', color: '#888', border: '1px dashed #e1e5eb' }}>
@@ -334,12 +280,7 @@ function App() {
                               <td data-label="SOLICITANTE">{exp.solicitante} <br/><small style={{color: '#999'}}>DNI: {exp.dni_solicitante}</small></td>
                               <td data-label="TIPO">{exp.tipo_expediente} <br/><small style={{color: '#3699ff', fontWeight: 'bold'}}>{exp.categoria}</small></td>
                               <td data-label="ACCIÓN" style={{ textAlign: 'center' }}>
-                                <button 
-                                  onClick={() => irAExpediente(exp.tipo_expediente, exp.categoria, exp.nro_expediente)}
-                                  style={{ padding: '8px 15px', backgroundColor: '#3699ff', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', whiteSpace: 'nowrap' }}
-                                >
-                                  Ir al Expediente
-                                </button>
+                                <button onClick={() => irAExpediente(exp.tipo_expediente, exp.categoria, exp.nro_expediente)} style={{ padding: '8px 15px', backgroundColor: '#3699ff', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Ir al Expediente</button>
                               </td>
                             </tr>
                           ))}
@@ -351,37 +292,23 @@ function App() {
               </div>
             </div>
           )}
-
           {vistaActual === 'tabla' && opcionSeleccionada !== "Búsqueda General" && (
-            <VistaExpedientes 
-              usuario={usuario} 
-              categoriaPrincipal={opcionSeleccionada} 
-              filtroInicial={filtroBuscador}
-              subCategoriaInicial={subCategoriaSeleccionada}
-              onLogout={handleLogout} 
-              onVolver={() => cambiarVista('tabla', 'Búsqueda General')}
-            />
+            <VistaExpedientes usuario={usuario} categoriaPrincipal={opcionSeleccionada} filtroInicial={filtroBuscador} subCategoriaInicial={subCategoriaSeleccionada} onLogout={handleLogout} onVolver={() => cambiarVista('tabla', 'Búsqueda General')} />
           )}
-
           {vistaActual === 'citas' && (
-            <VistaCitas 
-              usuario={usuario} 
-              onLogout={handleLogout} 
-              onVolver={() => cambiarVista('tabla', 'Búsqueda General')} 
-            />
+            <VistaCitas usuario={usuario} onLogout={handleLogout} onVolver={() => cambiarVista('tabla', 'Búsqueda General')} />
           )}
-
           {rolUsuario === 'ADMINISTRADOR' && vistaActual === 'reportes' && (
             <VistaReportes />
           )}
-
           {rolUsuario === 'ADMINISTRADOR' && vistaActual === 'usuarios' && (
             <VistaUsuarios />
           )}
-
+          {rolUsuario === 'ADMINISTRADOR' && vistaActual === 'auditoria' && (
+            <VistaAuditoria irAExpediente={irAExpediente} />
+          )}
         </section>
       </main>
-
     </div>
   );
 }
