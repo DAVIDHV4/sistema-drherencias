@@ -74,7 +74,7 @@ const crearExpediente = async (req, res) => {
         if (existe.rows.length > 0) return res.status(400).json({ error: "Ya existe." });
         const resultInsert = await pool.query(`INSERT INTO expedientes (tipo_expediente, nro_expediente, solicitante, dni_solicitante, juzgado, abogado_encargado, materia, categoria, estado, observaciones) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, [data.tipo_expediente, data.nro_expediente, data.solicitante, data.dni_solicitante, data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.estado || 'En Trámite', data.observaciones || '']);
         const nuevoId = resultInsert.rows[0].id;
-        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'CREAR', data.nro_expediente, 'Creó un nuevo expediente');
+        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'CREAR', data.nro_expediente, 'Creó un nuevo expediente', nuevoId);
         let listaEditables = [], listaFinales = [];
         if (req.files && (req.files['editables'] || req.files['finales'])) {
             const tipoCarpeta = data.tipo_expediente || 'Otros';
@@ -134,7 +134,7 @@ const editarExpediente = async (req, res) => {
             listaFinales.push(...(await Promise.all(promesasFinales)));
         }
         const expActualizado = await pool.query(`UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8, estado=$9, observaciones=$10, archivos_editables=$11, archivos_finales=$12 WHERE id=$13 RETURNING *`, [data.tipo_expediente, data.solicitante, data.dni_solicitante, data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.nro_expediente, data.estado, data.observaciones, JSON.stringify(listaEditables), JSON.stringify(listaFinales), id]);
-        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', data.nro_expediente, 'Actualizó información del expediente');
+        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', data.nro_expediente, 'Actualizó información del expediente', id);
         res.json(expActualizado.rows[0]);
     } catch (err) { res.status(500).json({ error: "Error interno" }); }
 };
@@ -166,7 +166,7 @@ const agregarArchivosRapidos = async (req, res) => {
         listaEditables.push(...(await Promise.all(promesasEditables)));
         listaFinales.push(...(await Promise.all(promesasFinales)));
         await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(listaEditables), JSON.stringify(listaFinales), id]);
-        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', exp.nro_expediente, 'Agregó archivos rápidos al expediente');
+        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', exp.nro_expediente, 'Agregó archivos rápidos al expediente', id);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "Error interno" }); }
 };
@@ -195,7 +195,7 @@ const marcarFinal = async (req, res) => {
             archivo.url_local = `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(archivo.nombre)}`;
             finales.push(archivo);
             await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
-            await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', exp.nro_expediente, `Marcó como final el archivo: ${archivo.nombre}`);
+            await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', exp.nro_expediente, `Marcó como final el archivo: ${archivo.nombre}`, id);
         }
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "Error interno" }); }
@@ -221,7 +221,7 @@ const desmarcarFinal = async (req, res) => {
             }
             editables.push(archivo);
             await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
-            await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', exp.nro_expediente, `Desmarcó como final el archivo: ${archivo.nombre}`);
+            await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', exp.nro_expediente, `Desmarcó como final el archivo: ${archivo.nombre}`, id);
         }
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "Error interno" }); }
@@ -242,7 +242,7 @@ const eliminarArchivo = async (req, res) => {
         if (tipo === 'editables') editables = editables.filter(a => a.nombre !== nombre);
         else finales = finales.filter(a => a.nombre !== nombre);
         await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(editables), JSON.stringify(finales), id]);
-        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'ELIMINAR', exp.nro_expediente, `Eliminó el archivo: ${nombre}`);
+        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'ELIMINAR', exp.nro_expediente, `Eliminó el archivo: ${nombre}`, id);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "Error interno" }); }
 };

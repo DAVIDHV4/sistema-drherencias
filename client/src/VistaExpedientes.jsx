@@ -84,7 +84,8 @@ function VistaExpedientes({ usuario, categoriaPrincipal, filtroInicial, subCateg
         modulo: 'EXPEDIENTES',
         accion: 'VER',
         registro_afectado: exp.nro_expediente,
-        detalle: `El usuario abrió el visor de archivos del expediente.`
+        detalle: `El usuario abrió el visor de archivos del expediente.`,
+        registro_id: exp.id
       });
     } catch (e) {
       console.error("No se pudo auditar la vista");
