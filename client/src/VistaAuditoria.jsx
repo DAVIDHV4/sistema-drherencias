@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { FaSearch, FaHistory } from 'react-icons/fa';
+import { FaSearch, FaHistory, FaCalendarAlt } from 'react-icons/fa';
 
 function VistaAuditoria({ irAExpediente }) {
+  const fechaActual = new Date();
+  const mesAnioActual = `${fechaActual.getFullYear()}-${String(fechaActual.getMonth() + 1).padStart(2, '0')}`;
+
   const [historial, setHistorial] = useState([]);
   const [busqueda, setBusqueda] = useState('');
+  const [mesFiltro, setMesFiltro] = useState(mesAnioActual);
 
   useEffect(() => {
     cargarAuditoria();
-  }, []);
+  }, [mesFiltro]);
 
   const cargarAuditoria = async () => {
     try {
-      const res = await axios.get('/api/auditoria');
+      const [anio, mes] = mesFiltro.split('-');
+      const res = await axios.get(`/api/auditoria?mes=${mes}&anio=${anio}`);
       setHistorial(res.data);
     } catch (error) {
       Swal.fire('Error', 'No se pudo cargar el control de expedientes', 'error');
@@ -42,14 +47,11 @@ function VistaAuditoria({ irAExpediente }) {
     });
   };
 
-  const getColorAccion = (accion) => {
-    const colores = {
-      'CREAR': 'var(--color-exito)',
-      'EDITAR': '#f57c00',
-      'ELIMINAR': 'var(--color-peligro)',
-      'VER': '#3699ff'
-    };
-    return colores[accion?.toUpperCase()] || '#555';
+  const formatearMesTexto = (mesAnio) => {
+    if (!mesAnio) return '';
+    const [anio, mes] = mesAnio.split('-');
+    const date = new Date(anio, parseInt(mes) - 1, 1);
+    return date.toLocaleString('es-PE', { month: 'long', year: 'numeric' }).toUpperCase();
   };
 
   const historialFiltrado = historial.filter(item => {
@@ -67,9 +69,21 @@ function VistaAuditoria({ irAExpediente }) {
         <div className="vista-header-row vista-header-row-completa">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FaHistory size={24} color="#555" />
-            <h2>Control de Expedientes</h2>
+            <div>
+              <h2 style={{ margin: 0 }}> {formatearMesTexto(mesFiltro)}</h2>
+              <span style={{ fontSize: '13px', color: '#888' }}>Expedientes del mes</span>
+            </div>
           </div>
-          <div className="vista-actions">
+          <div className="vista-actions" style={{ display: 'flex', gap: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid #ddd', borderRadius: '8px', padding: '0 10px' }}>
+              <FaCalendarAlt color="#888" style={{ marginRight: '8px' }} />
+              <input 
+                type="month" 
+                value={mesFiltro}
+                onChange={(e) => setMesFiltro(e.target.value)}
+                style={{ border: 'none', outline: 'none', padding: '8px 0', color: '#333', fontWeight: 'bold', cursor: 'pointer' }}
+              />
+            </div>
             <div className="vista-search">
               <FaSearch className="icon-search" />
               <input 
@@ -77,7 +91,7 @@ function VistaAuditoria({ irAExpediente }) {
                 placeholder="Buscar Nro Expediente o Usuario..." 
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                style={{ width: '300px' }}
+                style={{ width: '250px' }}
               />
             </div>
           </div>
@@ -88,11 +102,10 @@ function VistaAuditoria({ irAExpediente }) {
             <table className="vista-table vista-table-completa">
               <thead>
                 <tr>
-                  <th>FECHA Y HORA</th>
+                  <th>ÚLTIMA INTERACCIÓN</th>
                   <th>USUARIO</th>
-                  <th>ACCIÓN</th>
                   <th>NRO. EXPEDIENTE</th>
-                  <th>DETALLE</th>
+                  <th>DETALLE DEL CAMBIO</th>
                   <th>IP / DISPOSITIVO</th>
                 </tr>
               </thead>
@@ -102,11 +115,10 @@ function VistaAuditoria({ irAExpediente }) {
                     key={h.id} 
                     onClick={() => handleFilaClick(h.registro_afectado)}
                     style={{ cursor: 'pointer' }}
-                    title="Haz clic para ver este expediente"
+                    title="Haz clic para ir a este expediente"
                   >
-                    <td style={{ fontSize: '13px', color: '#555', whiteSpace: 'nowrap' }}>{formatearFecha(h.fecha_hora)}</td>
+                    <td style={{ fontSize: '13px', color: '#555', whiteSpace: 'nowrap', fontWeight: 'bold' }}>{formatearFecha(h.fecha_hora)}</td>
                     <td style={{ fontWeight: 'bold', color: 'var(--color-primario)' }}>{h.usuario_login}</td>
-                    <td style={{ fontWeight: 'bold', fontSize: '12px', color: getColorAccion(h.accion) }}>{h.accion}</td>
                     <td style={{ fontWeight: 'bold', color: '#333' }}>{h.registro_afectado}</td>
                     <td style={{ fontSize: '13px', color: '#444' }}>{h.detalle}</td>
                     <td style={{ fontSize: '11px', color: '#999', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={h.dispositivo}>
@@ -116,7 +128,7 @@ function VistaAuditoria({ irAExpediente }) {
                   </tr>
                 ))}
                 {historialFiltrado.length === 0 && (
-                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>No hay registros de expedientes que coincidan con tu búsqueda.</td></tr>
+                  <tr><td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>No hubo interacciones con expedientes en este mes.</td></tr>
                 )}
               </tbody>
             </table>

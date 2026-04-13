@@ -3,9 +3,25 @@ const { registrarAuditoria } = require('../services/auditoria.service');
 
 const obtenerAuditoria = async (req, res) => {
     try {
-        const result = await pool.query(
-            "SELECT * FROM auditoria_general WHERE modulo = 'EXPEDIENTES' ORDER BY fecha_hora DESC LIMIT 1000"
-        );
+        const { mes, anio } = req.query;
+        const targetMes = mes ? parseInt(mes) : new Date().getMonth() + 1;
+        const targetAnio = anio ? parseInt(anio) : new Date().getFullYear();
+
+        const query = `
+            SELECT * FROM (
+                SELECT DISTINCT ON (registro_afectado) *
+                FROM auditoria_general
+                WHERE modulo = 'EXPEDIENTES' 
+                AND registro_afectado IS NOT NULL 
+                AND registro_afectado != ''
+                AND EXTRACT(MONTH FROM fecha_hora) = $1
+                AND EXTRACT(YEAR FROM fecha_hora) = $2
+                ORDER BY registro_afectado, fecha_hora DESC
+            ) t
+            ORDER BY fecha_hora DESC
+            LIMIT 500
+        `;
+        const result = await pool.query(query, [targetMes, targetAnio]);
         res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: "Error interno al obtener auditoría" });

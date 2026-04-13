@@ -194,6 +194,9 @@ function App() {
           <button className={vistaActual === 'citas' ? 'active' : ''} onClick={() => cambiarVista('citas')}>
             <FaCalendarAlt size={20} /> Calendario de Citas
           </button>
+          <button className={vistaActual === 'auditoria' ? 'active' : ''} onClick={() => cambiarVista('auditoria')}>
+            <FaHistory size={20} /> Control de Expedientes
+          </button>
           {rolUsuario === 'ADMINISTRADOR' && (
             <>
               <button className={vistaActual === 'reportes' ? 'active' : ''} onClick={() => cambiarVista('reportes')}>
@@ -201,9 +204,6 @@ function App() {
               </button>
               <button className={vistaActual === 'usuarios' ? 'active' : ''} onClick={() => cambiarVista('usuarios')}>
                 <FaUsers size={20} /> Personal y Usuarios
-              </button>
-              <button className={vistaActual === 'auditoria' ? 'active' : ''} onClick={() => cambiarVista('auditoria')}>
-                <FaHistory size={20} /> Control de Expedientes
               </button>
             </>
           )}
@@ -298,14 +298,14 @@ function App() {
           {vistaActual === 'citas' && (
             <VistaCitas usuario={usuario} onLogout={handleLogout} onVolver={() => cambiarVista('tabla', 'Búsqueda General')} />
           )}
+          {vistaActual === 'auditoria' && (
+            <VistaAuditoria irAExpediente={irAExpediente} />
+          )}
           {rolUsuario === 'ADMINISTRADOR' && vistaActual === 'reportes' && (
             <VistaReportes />
           )}
           {rolUsuario === 'ADMINISTRADOR' && vistaActual === 'usuarios' && (
             <VistaUsuarios />
-          )}
-          {rolUsuario === 'ADMINISTRADOR' && vistaActual === 'auditoria' && (
-            <VistaAuditoria irAExpediente={irAExpediente} />
           )}
         </section>
       </main>
