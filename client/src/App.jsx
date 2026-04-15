@@ -5,7 +5,7 @@ import VistaCitas from './VistaCitas';
 import VistaReportes from './VistaReportes';
 import VistaUsuarios from './VistaUsuarios';
 import VistaAuditoria from './VistaAuditoria';
-import { FaFolderOpen, FaCalendarAlt, FaSignOutAlt, FaSearch, FaUserCircle, FaChevronDown, FaChevronRight, FaLink, FaBars, FaFileExcel, FaUsers, FaHistory, FaSun, FaMoon, FaUndo } from 'react-icons/fa';
+import { FaFolderOpen, FaCalendarAlt, FaSignOutAlt, FaSearch, FaUserCircle, FaChevronDown, FaChevronRight, FaLink, FaBars, FaFileExcel, FaUsers, FaHistory } from 'react-icons/fa';
 import './App.css'; 
 import './estilos/Layout.css'; 
 
@@ -27,22 +27,15 @@ function App() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const [colorPrimario, setColorPrimario] = useState(localStorage.getItem('color_primario') || '#194276');
-  const [modoOscuro, setModoOscuro] = useState(localStorage.getItem('modo_oscuro') === 'true');
-
   useEffect(() => {
-    document.documentElement.style.setProperty('--color-primario', colorPrimario);
-    localStorage.setItem('color_primario', colorPrimario);
-  }, [colorPrimario]);
-
-  useEffect(() => {
-    if (modoOscuro) {
-      document.documentElement.setAttribute('data-theme', 'dark');
+    const idUsuario = localStorage.getItem('id_sistema');
+    
+    if (idUsuario === '3') {
+      document.documentElement.style.setProperty('--color-primario', '#ec4899');
     } else {
-      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.style.setProperty('--color-primario', '#194276');
     }
-    localStorage.setItem('modo_oscuro', modoOscuro);
-  }, [modoOscuro]);
+  }, [usuario]);
 
   useEffect(() => {
     const requestInterceptor = axios.interceptors.request.use(config => {
@@ -234,50 +227,27 @@ function App() {
             </button>
             <div className="tools-container">
               <button onClick={() => setMostrarEnlaces(!mostrarEnlaces)} className="btn-herramientas">
-                <FaLink style={{ color: 'var(--color-primario)' }} /> Herramientas <FaChevronDown size={12} />
+                <FaLink color="var(--color-primario)" /> Herramientas <FaChevronDown size={12} />
               </button>
               {mostrarEnlaces && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '15px', background: 'var(--fondo-tarjetas)', border: '1px solid var(--borde-suave)', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', padding: '5px 0', minWidth: '220px', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
-                  <a href="https://sigueloplus.sunarp.gob.pe/siguelo/" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', color: 'var(--texto-principal)', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid var(--borde-suave)', fontWeight: '500' }}>Síguélo Pluss</a>
-                  <a href="https://cej.pj.gob.pe/cej/forms/busquedaform.html" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', color: 'var(--texto-principal)', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid var(--borde-suave)', fontWeight: '500' }}>Búsqueda de Expediente</a>
-                  <a href="https://im01-autorizacion-sprl-production.apps.paas.sunarp.gob.pe/v1/sunarp-services/im/autorizacion/login" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', color: 'var(--texto-principal)', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid var(--borde-suave)', fontWeight: '500' }}>Sunarp</a>
-                  <a href="https://casillas.pj.gob.pe/sinoe/login.xhtml" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', color: 'var(--texto-principal)', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>SINOE</a>
+                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '15px', background: 'white', border: '1px solid #eee', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', padding: '5px 0', minWidth: '220px', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
+                  <a href="https://sigueloplus.sunarp.gob.pe/siguelo/" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', color: '#333', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f5f5f5', fontWeight: '500' }}>Síguélo Pluss</a>
+                  <a href="https://cej.pj.gob.pe/cej/forms/busquedaform.html" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', color: '#333', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f5f5f5', fontWeight: '500' }}>Búsqueda de Expediente</a>
+                  <a href="https://im01-autorizacion-sprl-production.apps.paas.sunarp.gob.pe/v1/sunarp-services/im/autorizacion/login" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', color: '#333', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f5f5f5', fontWeight: '500' }}>Sunarp</a>
+                  <a href="https://casillas.pj.gob.pe/sinoe/login.xhtml" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', color: '#333', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>SINOE</a>
                 </div>
               )}
             </div>
           </div>
           <div className="topbar-user">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px', borderRight: '1px solid var(--borde-suave)', paddingRight: '20px' }}>
-              <input 
-                type="color" 
-                value={colorPrimario} 
-                onChange={(e) => setColorPrimario(e.target.value)} 
-                style={{ width: '28px', height: '28px', padding: 0, border: 'none', borderRadius: '50%', cursor: 'pointer', outline: 'none', background: 'transparent' }} 
-                title="Cambiar color del sistema"
-              />
-              <button 
-                onClick={() => setColorPrimario('#194276')} 
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--texto-secundario)', display: 'flex', alignItems: 'center' }} 
-                title="Restaurar color por defecto"
-              >
-                <FaUndo size={16} />
-              </button>
-              <button 
-                onClick={() => setModoOscuro(!modoOscuro)} 
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--texto-principal)', display: 'flex', alignItems: 'center' }} 
-                title={modoOscuro ? "Cambiar a Modo Claro" : "Cambiar a Modo Oscuro"}
-              >
-                {modoOscuro ? <FaSun size={20} color="#F59E0B" /> : <FaMoon size={20} />}
-              </button>
-            </div>
             <div className="topbar-user-info">
-              <FaUserCircle size={24} style={{ color: 'var(--color-primario)' }} />
+              <FaUserCircle size={24} color="var(--color-primario)" />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: 'bold', color: 'var(--texto-principal)' }}>{usuario}</span>
-                <span style={{ fontSize: '11px', color: 'var(--texto-secundario)' }}>{rolUsuario}</span>
+                <span style={{ fontWeight: 'bold' }}>{usuario}</span>
+                <span style={{ fontSize: '11px', color: '#888' }}>{rolUsuario}</span>
               </div>
             </div>
-            <button onClick={handleLogout} className="btn-logout" style={{ background: 'var(--color-primario)', color: 'white', border: 'none' }}>
+            <button onClick={handleLogout} className="btn-logout" style={{ backgroundColor: 'var(--color-peligro)', color: 'white', border: 'none' }}>
               <FaSignOutAlt/> Salir
             </button>
           </div>
@@ -287,38 +257,38 @@ function App() {
             <div className="vista-container vista-container-completa">
               <div className="vista-content">
                 <div className="vista-header-row vista-header-row-completa">
-                  <h2 style={{ color: 'var(--texto-principal)' }}>Búsqueda Global</h2>
+                  <h2>Búsqueda Global</h2>
                   <div className="vista-actions">
                     <form className="vista-search" onSubmit={handleBuscarGlobal}>
-                      <FaSearch className="icon-search" style={{ color: 'var(--texto-secundario)' }}/>
-                      <input type="text" placeholder="DNI o Expediente..." value={busquedaGlobal} onChange={(e) => setBusquedaGlobal(e.target.value)} style={{ color: 'var(--texto-principal)' }} />
+                      <FaSearch className="icon-search"/>
+                      <input type="text" placeholder="DNI o Expediente..." value={busquedaGlobal} onChange={(e) => setBusquedaGlobal(e.target.value)} />
                       <button type="submit" style={{ display: 'none' }}></button>
                     </form>
                   </div>
                 </div>
                 <div style={{ padding: '30px' }}>
                   {resultadosGlobales.length === 0 ? (
-                    <div style={{ background: 'var(--fondo-principal)', padding: '60px 20px', borderRadius: '12px', textAlign: 'center', color: 'var(--texto-secundario)', border: '1px dashed var(--borde-suave)' }}>
-                      <FaSearch size={40} style={{ color: 'var(--borde-suave)', marginBottom: '15px' }} />
+                    <div style={{ background: '#fdfdfd', padding: '60px 20px', borderRadius: '12px', textAlign: 'center', color: '#888', border: '1px dashed #e1e5eb' }}>
+                      <FaSearch size={40} color="#ddd" style={{ marginBottom: '15px' }} />
                       <p style={{ fontSize: '16px', margin: 0 }}>Escriba un DNI, Número de Expediente o Nombre en la barra superior y presione Enter.</p>
                     </div>
                   ) : (
-                    <div className="vista-table-card-completa" style={{ overflowX: 'auto', width: '100%', border: '1px solid var(--borde-suave)', borderRadius: '8px' }}>
+                    <div className="vista-table-card-completa" style={{ overflowX: 'auto', width: '100%', border: '1px solid #eee', borderRadius: '8px' }}>
                       <table className="vista-table vista-table-completa">
                         <thead>
                           <tr>
-                            <th style={{ color: 'var(--texto-principal)' }}>NRO. EXPEDIENTE</th>
-                            <th style={{ color: 'var(--texto-principal)' }}>SOLICITANTE / DEMANDANTE</th>
-                            <th style={{ color: 'var(--texto-principal)' }}>TIPO</th>
-                            <th style={{ textAlign: 'center', color: 'var(--texto-principal)' }}>ACCIÓN</th>
+                            <th>NRO. EXPEDIENTE</th>
+                            <th>SOLICITANTE / DEMANDANTE</th>
+                            <th>TIPO</th>
+                            <th style={{ textAlign: 'center' }}>ACCIÓN</th>
                           </tr>
                         </thead>
                         <tbody>
                           {resultadosGlobales.map(exp => (
                             <tr key={exp.id}>
-                              <td data-label="NRO. EXPEDIENTE" style={{ fontWeight: 'bold', color: 'var(--texto-principal)' }}>{exp.nro_expediente}</td>
-                              <td data-label="SOLICITANTE" style={{ color: 'var(--texto-principal)' }}>{exp.solicitante} <br/><small style={{color: 'var(--texto-secundario)'}}>DNI: {exp.dni_solicitante}</small></td>
-                              <td data-label="TIPO" style={{ color: 'var(--texto-principal)' }}>{exp.tipo_expediente} <br/><small style={{color: 'var(--color-primario)', fontWeight: 'bold'}}>{exp.categoria}</small></td>
+                              <td data-label="NRO. EXPEDIENTE" style={{ fontWeight: 'bold', color: '#333' }}>{exp.nro_expediente}</td>
+                              <td data-label="SOLICITANTE">{exp.solicitante} <br/><small style={{color: '#999'}}>DNI: {exp.dni_solicitante}</small></td>
+                              <td data-label="TIPO">{exp.tipo_expediente} <br/><small style={{color: 'var(--color-primario)', fontWeight: 'bold'}}>{exp.categoria}</small></td>
                               <td data-label="ACCIÓN" style={{ textAlign: 'center' }}>
                                 <button onClick={() => irAExpediente(exp.tipo_expediente, exp.categoria, exp.nro_expediente)} style={{ padding: '8px 15px', backgroundColor: 'var(--color-primario)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Ir al Expediente</button>
                               </td>
