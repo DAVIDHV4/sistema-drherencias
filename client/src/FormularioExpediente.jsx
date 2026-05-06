@@ -55,7 +55,7 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
   };
 
   const onSubmit = async (data) => {
-    Swal.fire({ title: 'Procesando en Drive...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+    Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
     
     const formData = new FormData();
     formData.append('tipo_expediente', data.tipo_expediente || '');
@@ -85,12 +85,16 @@ function FormularioExpediente({ onClose, onGuardarExitoso, expedienteAEditar, ca
     }
 
     try {
+      let res;
       if (expedienteAEditar) {
-        await axios.put(`/api/expedientes/${expedienteAEditar.id}`, formData);
+        res = await axios.put(`/api/expedientes/${expedienteAEditar.id}`, formData);
       } else {
-        await axios.post('/api/expedientes', formData);
+        res = await axios.post('/api/expedientes', formData);
       }
-      await Swal.fire({ icon: 'success', title: '¡Listo!', confirmButtonColor: '#004e8e' });
+      
+      const mensajeExito = res.data.message || 'Operación exitosa.';
+      await Swal.fire({ icon: 'success', title: '¡Listo!', text: mensajeExito, confirmButtonColor: '#004e8e' });
+      
       onGuardarExitoso();
       onClose();
     } catch (error) {

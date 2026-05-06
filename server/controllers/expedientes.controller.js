@@ -31,6 +31,53 @@ async function uploadToDrive(filePath, fileName, mimeType, parentId, isFinal = f
     return { id: res.data.id, link: res.data.webViewLink };
 }
 
+async function processBackgroundUploads(expedienteId, files, formData, reqContext) {
+    try {
+        const data = formData;
+        const tipoCarpeta = data.tipo_expediente || 'Otros';
+        const expCarpeta = data.nro_expediente ? String(data.nro_expediente).replace(/[/\\?%*:|"<>]/g, '-') : `EXP-${expedienteId}`;
+        const localFolderPath = path.join(uploadDir, tipoCarpeta, expCarpeta);
+        
+        if (!fs.existsSync(localFolderPath)) { fs.mkdirSync(localFolderPath, { recursive: true }); }
+        
+        const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
+        const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
+        
+        const expActual = await pool.query('SELECT archivos_editables, archivos_finales FROM expedientes WHERE id = $1', [expedienteId]);
+        let listaEditables = parseLista(expActual.rows[0].archivos_editables);
+        let listaFinales = parseLista(expActual.rows[0].archivos_finales);
+
+        const promesasEditables = (files['editables'] || []).map(async (f) => {
+            const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
+            const uploadDrive = await uploadToDrive(f.path, nombreUtf8, f.mimetype, expCarpetaId, false);
+            fs.unlinkSync(f.path);
+            return { nombre: nombreUtf8, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
+        });
+        
+        const promesasFinales = (files['finales'] || []).map(async (f) => {
+            const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
+            const newLocalPath = path.join(localFolderPath, nombreUtf8); fs.renameSync(f.path, newLocalPath);
+            const uploadDrive = await uploadToDrive(newLocalPath, nombreUtf8, f.mimetype, expCarpetaId, true);
+            return { nombre: nombreUtf8, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(nombreUtf8)}`, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
+        });
+
+        const resultsEditables = await Promise.allSettled(promesasEditables);
+        const resultsFinales = await Promise.allSettled(promesasFinales);
+
+        resultsEditables.forEach(result => { if (result.status === 'fulfilled') listaEditables.push(result.value); });
+        resultsFinales.forEach(result => { if (result.status === 'fulfilled') listaFinales.push(result.value); });
+
+        await pool.query(`UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3`, [JSON.stringify(listaEditables), JSON.stringify(listaFinales), expedienteId]);
+        
+        if (reqContext) {
+            await registrarAuditoria(reqContext, null, reqContext.usuario, 'EXPEDIENTES', 'EDITAR', data.nro_expediente, 'Archivos pesados sincronizados con éxito en Drive', expedienteId);
+        }
+
+    } catch (error) {
+        console.error(`Error en carga de fondo para expediente ${expedienteId}:`, error);
+    }
+}
+
 const parseLista = (val) => {
     if (!val) return [];
     if (typeof val === 'string') { try { return JSON.parse(val); } catch(e){ return []; } }
@@ -72,34 +119,18 @@ const crearExpediente = async (req, res) => {
         const data = req.body;
         const existe = await pool.query('SELECT id FROM expedientes WHERE nro_expediente = $1', [data.nro_expediente]);
         if (existe.rows.length > 0) return res.status(400).json({ error: "Ya existe." });
-        const resultInsert = await pool.query(`INSERT INTO expedientes (tipo_expediente, nro_expediente, solicitante, dni_solicitante, juzgado, abogado_encargado, materia, categoria, estado, observaciones) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, [data.tipo_expediente, data.nro_expediente, data.solicitante, data.dni_solicitante, data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.estado || 'En Trámite', data.observaciones || '']);
+        
+        const resultInsert = await pool.query(`INSERT INTO expedientes (tipo_expediente, nro_expediente, solicitante, dni_solicitante, juzgado, abogado_encargado, materia, categoria, estado, observaciones, archivos_editables, archivos_finales) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`, [data.tipo_expediente, data.nro_expediente, data.solicitante, data.dni_solicitante, data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.estado || 'En Trámite', data.observaciones || '', '[]', '[]']);
         const nuevoId = resultInsert.rows[0].id;
-        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'CREAR', data.nro_expediente, 'Creó un nuevo expediente', nuevoId);
-        let listaEditables = [], listaFinales = [];
+        
+        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'CREAR', data.nro_expediente, 'Creó un nuevo expediente (Archivos cargando en fondo)', nuevoId);
+        
         if (req.files && (req.files['editables'] || req.files['finales'])) {
-            const tipoCarpeta = data.tipo_expediente || 'Otros';
-            const expCarpeta = String(data.nro_expediente).replace(/[/\\?%*:|"<>]/g, '-');
-            const localFolderPath = path.join(uploadDir, tipoCarpeta, expCarpeta);
-            if (!fs.existsSync(localFolderPath)) { fs.mkdirSync(localFolderPath, { recursive: true }); }
-            const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
-            const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
-            const promesasEditables = (req.files['editables'] || []).map(async (f) => {
-                const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const uploadDrive = await uploadToDrive(f.path, nombreUtf8, f.mimetype, expCarpetaId, false);
-                fs.unlinkSync(f.path);
-                return { nombre: nombreUtf8, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
-            });
-            const promesasFinales = (req.files['finales'] || []).map(async (f) => {
-                const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const newLocalPath = path.join(localFolderPath, nombreUtf8); fs.renameSync(f.path, newLocalPath);
-                const uploadDrive = await uploadToDrive(newLocalPath, nombreUtf8, f.mimetype, expCarpetaId, true);
-                return { nombre: nombreUtf8, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(nombreUtf8)}`, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
-            });
-            listaEditables = await Promise.all(promesasEditables);
-            listaFinales = await Promise.all(promesasFinales);
-            await pool.query(`UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3`, [JSON.stringify(listaEditables), JSON.stringify(listaFinales), nuevoId]);
+            const reqContext = { headers: req.headers, socket: { remoteAddress: req.socket.remoteAddress }, ip: req.ip, usuario: obtenerUsuarioReq(req) };
+            processBackgroundUploads(nuevoId, req.files, data, reqContext);
         }
-        res.json({ id: nuevoId });
+        
+        res.json({ id: nuevoId, message: "Expediente creado. Los archivos se están sincronizando en segundo plano." });
     } catch (err) { res.status(500).json({ error: "Error interno" }); }
 };
 
@@ -109,33 +140,20 @@ const editarExpediente = async (req, res) => {
         const data = req.body;
         const existe = await pool.query('SELECT id FROM expedientes WHERE nro_expediente = $1 AND id <> $2', [data.nro_expediente, id]);
         if (existe.rows.length > 0) return res.status(400).json({ error: "Ya existe." });
+        
         let listaEditables = parseLista(data.editables_previos || data.archivos_editables);
         let listaFinales = parseLista(data.finales_previos || data.archivos_finales);
-        if (req.files && (req.files['editables'] || req.files['finales'])) {
-            const tipoCarpeta = data.tipo_expediente || 'Otros';
-            const expCarpeta = data.nro_expediente ? String(data.nro_expediente).replace(/[/\\?%*:|"<>]/g, '-') : `EXP-${id}`;
-            const localFolderPath = path.join(uploadDir, tipoCarpeta, expCarpeta);
-            if (!fs.existsSync(localFolderPath)) { fs.mkdirSync(localFolderPath, { recursive: true }); }
-            const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
-            const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
-            const promesasEditables = (req.files['editables'] || []).map(async (f) => {
-                const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const uploadDrive = await uploadToDrive(f.path, nombreUtf8, f.mimetype, expCarpetaId, false);
-                fs.unlinkSync(f.path);
-                return { nombre: nombreUtf8, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
-            });
-            const promesasFinales = (req.files['finales'] || []).map(async (f) => {
-                const nombreUtf8 = Buffer.from(f.originalname, 'latin1').toString('utf8');
-                const newLocalPath = path.join(localFolderPath, nombreUtf8); fs.renameSync(f.path, newLocalPath);
-                const uploadDrive = await uploadToDrive(newLocalPath, nombreUtf8, f.mimetype, expCarpetaId, true);
-                return { nombre: nombreUtf8, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(nombreUtf8)}`, url_drive: uploadDrive.link, drive_id: uploadDrive.id };
-            });
-            listaEditables.push(...(await Promise.all(promesasEditables)));
-            listaFinales.push(...(await Promise.all(promesasFinales)));
-        }
+        
         const expActualizado = await pool.query(`UPDATE expedientes SET tipo_expediente=$1, solicitante=$2, dni_solicitante=$3, juzgado=$4, abogado_encargado=$5, materia=$6, categoria=$7, nro_expediente=$8, estado=$9, observaciones=$10, archivos_editables=$11, archivos_finales=$12 WHERE id=$13 RETURNING *`, [data.tipo_expediente, data.solicitante, data.dni_solicitante, data.juzgado, data.abogado_encargado, data.materia, data.categoria, data.nro_expediente, data.estado, data.observaciones, JSON.stringify(listaEditables), JSON.stringify(listaFinales), id]);
+        
         await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', data.nro_expediente, 'Actualizó información del expediente', id);
-        res.json(expActualizado.rows[0]);
+        
+        if (req.files && (req.files['editables'] || req.files['finales'])) {
+            const reqContext = { headers: req.headers, socket: { remoteAddress: req.socket.remoteAddress }, ip: req.ip, usuario: obtenerUsuarioReq(req) };
+            processBackgroundUploads(id, req.files, data, reqContext);
+        }
+        
+        res.json({ ...expActualizado.rows[0], message: "Expediente actualizado. Los archivos nuevos se están sincronizando." });
     } catch (err) { res.status(500).json({ error: "Error interno" }); }
 };
 
@@ -143,31 +161,14 @@ const agregarArchivosRapidos = async (req, res) => {
     try {
         const { id } = req.params;
         const exp = (await pool.query('SELECT * FROM expedientes WHERE id = $1', [id])).rows[0];
-        const tipoCarpeta = exp.tipo_expediente || 'Otros';
-        const expCarpeta = String(exp.nro_expediente).replace(/[/\\?%*:|"<>]/g, '-');
-        const localFolderPath = path.join(uploadDir, tipoCarpeta, expCarpeta);
-        if (!fs.existsSync(localFolderPath)) { fs.mkdirSync(localFolderPath, { recursive: true }); }
-        const tipoCarpetaId = await getOrCreateFolder(tipoCarpeta, FOLDER_BASE_ID);
-        const expCarpetaId = await getOrCreateFolder(expCarpeta, tipoCarpetaId);
-        let listaEditables = parseLista(exp.archivos_editables);
-        let listaFinales = parseLista(exp.archivos_finales);
-        const promesasEditables = (req.files && req.files['editables'] ? req.files['editables'] : []).map(async (f) => {
-            const n = Buffer.from(f.originalname, 'latin1').toString('utf8');
-            const u = await uploadToDrive(f.path, n, f.mimetype, expCarpetaId, false);
-            fs.unlinkSync(f.path);
-            return { nombre: n, url_drive: u.link, drive_id: u.id };
-        });
-        const promesasFinales = (req.files && req.files['finales'] ? req.files['finales'] : []).map(async (f) => {
-            const n = Buffer.from(f.originalname, 'latin1').toString('utf8');
-            const newPath = path.join(localFolderPath, n); fs.renameSync(f.path, newPath);
-            const u = await uploadToDrive(newPath, n, f.mimetype, expCarpetaId, true);
-            return { nombre: n, url_local: `/uploads/${encodeURIComponent(tipoCarpeta)}/${encodeURIComponent(expCarpeta)}/${encodeURIComponent(n)}`, url_drive: u.link, drive_id: u.id };
-        });
-        listaEditables.push(...(await Promise.all(promesasEditables)));
-        listaFinales.push(...(await Promise.all(promesasFinales)));
-        await pool.query('UPDATE expedientes SET archivos_editables = $1, archivos_finales = $2 WHERE id = $3', [JSON.stringify(listaEditables), JSON.stringify(listaFinales), id]);
-        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', exp.nro_expediente, 'Agregó archivos rápidos al expediente', id);
-        res.json({ success: true });
+        
+        if (req.files && (req.files['editables'] || req.files['finales'])) {
+             const reqContext = { headers: req.headers, socket: { remoteAddress: req.socket.remoteAddress }, ip: req.ip, usuario: obtenerUsuarioReq(req) };
+             processBackgroundUploads(id, req.files, exp, reqContext);
+        }
+        
+        await registrarAuditoria(req, null, obtenerUsuarioReq(req), 'EXPEDIENTES', 'EDITAR', exp.nro_expediente, 'Inició carga rápida de archivos en segundo plano', id);
+        res.json({ success: true, message: "Los archivos se están subiendo en segundo plano." });
     } catch (err) { res.status(500).json({ error: "Error interno" }); }
 };
 

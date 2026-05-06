@@ -3,7 +3,7 @@ import axios from 'axios';
 import { FaTimes, FaCloudUploadAlt, FaLock, FaFileAlt, FaCheckCircle, FaTrash, FaUnlock } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import './estilos/Formulario.css'; 
-import './estilos/ModalArchivos.css'; /* IMPORTANTE: Nueva hoja de estilos */
+import './estilos/ModalArchivos.css'; 
 
 export default function ModalArchivos({ expediente, onClose, onGuardarExitoso }) {
   const [nuevosEditables, setNuevosEditables] = useState([]);
@@ -32,15 +32,17 @@ export default function ModalArchivos({ expediente, onClose, onGuardarExitoso })
 
   const handleSubirNuevos = async () => {
     if (nuevosEditables.length === 0 && nuevosFinales.length === 0) return;
-    Swal.fire({ title: 'Subiendo archivos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
     const formData = new FormData();
     Array.from(nuevosEditables).forEach(f => formData.append('editables', f));
     Array.from(nuevosFinales).forEach(f => formData.append('finales', f));
 
     try {
-      await axios.post(`/api/expedientes/${expediente.id}/archivos-rapidos`, formData);
-      await Swal.fire({ icon: 'success', title: '¡Listo!', text: 'Archivos subidos.', timer: 1500, showConfirmButton: false });
+      const res = await axios.post(`/api/expedientes/${expediente.id}/archivos-rapidos`, formData);
+      const mensajeExito = res.data.message || 'Subiendo';
+      
+      await Swal.fire({ icon: 'success', title: '¡Listo!', text: mensajeExito, confirmButtonColor: '#004e8e' });
       
       setNuevosEditables([]);
       setNuevosFinales([]);
@@ -137,7 +139,6 @@ export default function ModalArchivos({ expediente, onClose, onGuardarExitoso })
         
         <div className="modal-body">
           
-          {/* SECCIÓN 1: EN TRÁMITE */}
           <div className="file-section tramite">
             <h4 className="file-section-title title-tramite">
               <FaCloudUploadAlt size={22}/> 1. En Trámite
@@ -168,7 +169,6 @@ export default function ModalArchivos({ expediente, onClose, onGuardarExitoso })
             </div>
           </div>
 
-          {/* SECCIÓN 2: FINALIZADOS */}
           <div className="file-section finalizado">
             <h4 className="file-section-title title-finalizado">
               <FaLock size={20}/> 2. Documentos Finalizados
